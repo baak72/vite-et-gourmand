@@ -27,7 +27,7 @@ CREATE TABLE Regime (
 
 -- -----------------------------------------------------
 -- Table `Allergene`
--- Stocke les allergènes possibles (ex: Gluten, Noix, Lait)
+-- Stocke les allergènes possibles (ex: Gluten, Noix, Lait et Soja)
 -- -----------------------------------------------------
 CREATE TABLE Allergene (
     allergene_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -110,7 +110,7 @@ CREATE TABLE Menu (
     prix_par_personne DECIMAL(10, 2) NOT NULL,
     nombre_personne_minimum INT NOT NULL,
     quantite_restante INT DEFAULT 0,
-    conditions VARCHAR(255) NOT NULL,
+    conditions VARCHAR(255) DEFAULT NULL,
 
     -- Déclaration des clés étrangères
     regime_id INT NOT NULL,
