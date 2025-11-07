@@ -64,7 +64,7 @@ CREATE TABLE Utilisateur (
 utilisateur_id INT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     prenom VARCHAR(100) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(191) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL, -- Mot de passe haché ici
     telephone VARCHAR(20) NOT NULL,
     adresse_postale VARCHAR(255) NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE Avis (
     numero_commande INT NOT NULL,
     -- Déclaration de la contrainte de clé étrangère utilisateur_id
     CONSTRAINT fk_avis_utilisateur
-    FOREIGN KEY (utilisateur_id) REFERENCES Utilisateur(utilisateur_id)
+    FOREIGN KEY (utilisateur_id) REFERENCES Utilisateur(utilisateur_id),
     -- Déclaration de la contrainte de clé étrangère numero_commande
     CONSTRAINT fk_avis_commande
     FOREIGN KEY (numero_commande) REFERENCES Commande(numero_commande)
