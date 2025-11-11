@@ -25,7 +25,7 @@ export const auth = getAuth(app); // On l'exporte pour gérer les connexions
 export const db = getFirestore(app); // On l'exporte pour notre base NoSQL
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp } from "firebase/firestore"; 
+import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc } from "firebase/firestore"; 
 
 // --- FONCTIONS BACK-END ---
 /**
@@ -207,6 +207,30 @@ export const createOrder = async (orderData) => {
 
   } catch (error) {
     console.error("Erreur lors de la création de la commande :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour le statut d'une commande (pour l'espace Employé).
+ * @param {string} orderId - L'ID unique du document commande.
+ * @param {string} newStatus - Le nouveau statut (ex: "en préparation").
+ * @returns {Promise<void>}
+ */
+export const updateOrderStatus = async (orderId, newStatus) => {
+  try {
+    // 1. Crée une référence directe au document commande
+    const orderDocRef = doc(db, "Commande", orderId);
+
+    // 2. Met à jour uniquement les champs spécifiés
+    await updateDoc(orderDocRef, {
+      statut: newStatus
+    });
+
+    console.log("Statut de la commande mis à jour :", orderId);
+
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du statut :", error.message);
     throw error;
   }
 };
