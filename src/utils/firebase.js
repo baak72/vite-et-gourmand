@@ -25,7 +25,7 @@ export const auth = getAuth(app); // On l'exporte pour gérer les connexions
 export const db = getFirestore(app); // On l'exporte pour notre base NoSQL
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc, collection, getDocs, getDoc, query } from "firebase/firestore"; 
+import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp } from "firebase/firestore"; 
 
 // --- FONCTIONS BACK-END ---
 /**
@@ -178,6 +178,35 @@ export const getMenuById = async (menuId) => {
   } catch (error)
  {
     console.error("Erreur lors de la récupération du menu :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Crée un nouveau document de commande dans Firestore.
+ * @param {object} orderData - L'objet contenant les infos de la commande.
+ * @returns {object} La référence au document de commande créé.
+ */
+export const createOrder = async (orderData) => {
+  try {
+    // 1. Crée une référence à la collection "Commande"
+    const orderCollectionRef = collection(db, "Commande");
+
+    // 2. Prépare les données à sauvegarder
+    const dataToSave = {
+      ...orderData, // Les données du front-end (menu_id, user_id, prix, etc.)
+      date_commande: serverTimestamp(), // Firebase ajoute la date/heure du serveur
+      statut: "en attente" // Statut initial.
+    };
+
+    // 3. Ajoute le nouveau document à la collection
+    const docRef = await addDoc(orderCollectionRef, dataToSave);
+
+    console.log("Commande créée avec succès avec l'ID :", docRef.id);
+    return docRef;
+
+  } catch (error) {
+    console.error("Erreur lors de la création de la commande :", error.message);
     throw error;
   }
 };
