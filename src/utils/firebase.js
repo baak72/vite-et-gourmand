@@ -25,7 +25,7 @@ export const auth = getAuth(app); // On l'exporte pour gérer les connexions
 export const db = getFirestore(app); // On l'exporte pour notre base NoSQL
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; 
+import { doc, setDoc, collection, getDocs, getDoc, query } from "firebase/firestore"; 
 
 // --- FONCTIONS BACK-END ---
 /**
@@ -110,6 +110,74 @@ export const sendPasswordReset = async (email) => {
     console.log("E-mail de réinitialisation envoyé à :", email);
   } catch (error) {
     console.error("Erreur lors de l'envoi de l'e-mail de réinitialisation :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Récupère tous les menus depuis la collection Firestore.
+ * @returns {Array} Un tableau d'objets, où chaque objet est un menu.
+ */
+export const getMenus = async () => {
+  try {
+    // 1. Crée une référence à notre collection "Menu"
+    const menuCollectionRef = collection(db, "Menu");
+
+    // 2. Crée une requête pour récupérer tous les documents
+    const q = query(menuCollectionRef);
+
+    // 3. Exécute la requête et récupère les "instantanés" (snapshots)
+    const querySnapshot = await getDocs(q);
+
+    // 4. Transforme les résultats en un tableau simple
+    const menus = [];
+    querySnapshot.forEach((doc) => {
+      menus.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    console.log("Menus récupérés :", menus.length);
+    return menus;
+
+  } catch (error) {
+    console.error("Erreur lors de la récupération des menus :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Récupère un menu spécifique par son ID.
+ * @param {string} menuId - L'ID unique du document menu.
+ * @returns {object|null} L'objet menu s'il est trouvé, sinon null.
+ */
+export const getMenuById = async (menuId) => {
+  try {
+    // 1. Crée une référence directe au document
+    const docRef = doc(db, "Menu", menuId);
+
+    // 2. Exécute la requête pour UN seul document
+    const docSnap = await getDoc(docRef);
+
+    // 3. Vérifie si le document existe
+    if (docSnap.exists()) {
+      // 4. Renvoie les données
+      const menuData = {
+        id: docSnap.id,
+        ...docSnap.data()
+      };
+      console.log("Menu trouvé :", menuData.nom_menu);
+      return menuData;
+    } else {
+      // Le document n'existe pas
+      console.warn("Aucun menu trouvé avec l'ID :", menuId);
+      return null;
+    }
+
+  } catch (error)
+ {
+    console.error("Erreur lors de la récupération du menu :", error.message);
     throw error;
   }
 };
