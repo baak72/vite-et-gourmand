@@ -265,3 +265,30 @@ export const createEmployee = async (email, password) => {
     throw error;
   }
 };
+
+/**
+ * Appelle la Cloud Function sécurisée pour désactiver un compte employé.
+ * (Fonction réservée à l'Admin)
+ * @param {string} uid - L'ID de l'employé à désactiver.
+ * @returns {object} La réponse du serveur.
+ */
+export const disableEmployee = async (uid) => {
+  try {
+    // 1. Prépare la référence à notre Cloud Function
+    const disableEmployeeFunction = httpsCallable(functions, 'disableEmployeeAccount');
+
+    // 2. Appelle la fonction en lui passant l'UID
+    const result = await disableEmployeeFunction({ 
+      uid: uid 
+    });
+
+    // 3. Renvoie la réponse du serveur
+    console.log("Réponse de la Cloud Function :", result.data);
+    return result.data;
+
+  } catch (error) {
+    // Gère les erreurs (ex: "permission-denied")
+    console.error("Erreur lors de l'appel de la Cloud Function :", error.message);
+    throw error;
+  }
+};

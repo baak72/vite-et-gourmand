@@ -63,3 +63,50 @@ exports.createEmployeeAccount = onCall(async (request) => {
     throw new HttpsError("internal", error.message);
   }
 });
+
+// ------------------------------------------------------------------
+// Désactiver un compte employé
+// ------------------------------------------------------------------
+exports.disableEmployeeAccount = onCall(async (request) => {
+  // 1. Vérification de sécurité (Admin seulement)
+  const auth = request.auth;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Vous devez être connecté.");
+  }
+  if (auth.token.role !== "admin") {
+    throw new HttpsError(
+        "permission-denied",
+        "Vous n'avez pas les droits pour faire ça.",
+    );
+  }
+
+  // 2. L'UTILISATEUR EST BIEN UN ADMIN.
+  // On récupère l'ID de l'employé à désactiver
+  const {uid} = request.data;
+  if (!uid) {
+    throw new HttpsError("invalid-argument", "L'UID est manquant.");
+  }
+
+  try {
+    // Étape A : Désactiver le compte
+    await getAuth().updateUser(uid, {
+      disabled: true,
+    });
+
+    // Étape B : Mettre à jour notre base de données
+    const db = getFirestore();
+    const userDocRef = db.collection("Utilisateur").doc(uid);
+    await userDocRef.update({
+      est_actif: false,
+    });
+
+    // 3. Renvoyer un message de succès
+    return {
+      status: "success",
+      message: `Compte employé ${uid} désactivé avec succès.`,
+    };
+  } catch (error) {
+    console.error("Erreur Cloud Function (disable):", error);
+    throw new HttpsError("internal", error.message);
+  }
+});
