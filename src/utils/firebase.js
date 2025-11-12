@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 // 2. L'objet de configuration personnel 
 const firebaseConfig = {
@@ -23,6 +24,7 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app); // C'est pour Google Analytics
 export const auth = getAuth(app); // On l'exporte pour gérer les connexions
 export const db = getFirestore(app); // On l'exporte pour notre base NoSQL
+export const functions = getFunctions(app); // On l'exporte pour les fonctions Cloud
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
 import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc } from "firebase/firestore"; 
@@ -231,6 +233,35 @@ export const updateOrderStatus = async (orderId, newStatus) => {
 
   } catch (error) {
     console.error("Erreur lors de la mise à jour du statut :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Appelle la Cloud Function sécurisée pour créer un compte employé.
+ * (Fonction réservée à l'Admin)
+ * @param {string} email - L'email du nouvel employé.
+ * @param {string} password - Le mot de passe du nouvel employé.
+ * @returns {object} La réponse du serveur.
+ */
+export const createEmployee = async (email, password) => {
+  try {
+    // 1. Prépare la référence à notre Cloud Function
+    const createEmployeeFunction = httpsCallable(functions, 'createEmployeeAccount');
+
+    // 2. Appelle la fonction en lui passant les données
+    const result = await createEmployeeFunction({ 
+      email: email, 
+      password: password 
+    });
+
+    // 3. Renvoie la réponse du serveur (ex: { status: 'success', ... })
+    console.log("Réponse de la Cloud Function :", result.data);
+    return result.data;
+
+  } catch (error) {
+    // Gère les erreurs (ex: "permission-denied")
+    console.error("Erreur lors de l'appel de la Cloud Function :", error.message);
     throw error;
   }
 };
