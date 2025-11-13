@@ -302,7 +302,7 @@ export const getValidatedReviews = async () => {
     const reviewsCollectionRef = collection(db, "Avis");
     // Crée une requête avec un filtre
     const q = query(
-      reviewsCollectionRef, 
+      reviewsCollectionRef,
       where("statut", "==", "valide")
     );
 
@@ -311,6 +311,7 @@ export const getValidatedReviews = async () => {
     querySnapshot.forEach((doc) => {
       reviews.push({ id: doc.id, ...doc.data() });
     });
+
     return reviews;
   } catch (error) {
     console.error("Erreur lors de la récupération des avis :", error.message);
