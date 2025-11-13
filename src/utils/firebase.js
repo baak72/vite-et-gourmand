@@ -27,7 +27,7 @@ export const db = getFirestore(app); // On l'exporte pour notre base NoSQL
 export const functions = getFunctions(app); // On l'exporte pour les fonctions Cloud
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc } from "firebase/firestore"; 
+import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc, where } from "firebase/firestore"; 
 
 // --- FONCTIONS BACK-END ---
 /**
@@ -289,6 +289,31 @@ export const disableEmployee = async (uid) => {
   } catch (error) {
     // Gère les erreurs (ex: "permission-denied")
     console.error("Erreur lors de l'appel de la Cloud Function :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Récupère les avis clients qui ont le statut "valide".
+ * @returns {Array} Un tableau d'objets (avis validés).
+ */
+export const getValidatedReviews = async () => {
+  try {
+    const reviewsCollectionRef = collection(db, "Avis");
+    // Crée une requête avec un filtre
+    const q = query(
+      reviewsCollectionRef, 
+      where("statut", "==", "valide")
+    );
+
+    const querySnapshot = await getDocs(q);
+    const reviews = [];
+    querySnapshot.forEach((doc) => {
+      reviews.push({ id: doc.id, ...doc.data() });
+    });
+    return reviews;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des avis :", error.message);
     throw error;
   }
 };
