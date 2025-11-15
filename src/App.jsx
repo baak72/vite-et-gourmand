@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import HomeView from './views/HomeView';
 import MenusView from './views/MenusView';
 import ContactView from './views/ContactView';
-// (Importation de  LoginView, etc. ici plus tard)
+import LoginView from './views/LoginView';
 
 const router = createBrowserRouter([
   {
@@ -22,6 +22,9 @@ const router = createBrowserRouter([
       {
         path: "/contact",
         element: <ContactView />,
+      },
+      { path: "/login", 
+        element: <LoginView />,
       },
     ],
   },
