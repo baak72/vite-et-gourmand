@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 // On importe nos "machines"
 import { signInUser } from '../utils/firebase'; // Firebase
@@ -32,7 +32,7 @@ const LoginView = () => {
       // Étape A: On appelle la Firebase
       const userCredential = await signInUser(data.email, data.password);
       
-      // Étape B: On met l'utilisateur dans le Zustand
+      // Étape B: On connecte l'utilisateur
       setUser(userCredential.user);
 
       // Étape C: On redirige l'utilisateur vers sa page de profil
@@ -95,6 +95,14 @@ const LoginView = () => {
         )}
 
       </form>
+
+      <p className="text-center text-zinc-600 mt-4">
+        Pas encore de compte ? 
+        <Link to="/register" className="font-medium text-green-700 hover:underline ml-1">
+          S'inscrire
+        </Link>
+      </p>
+
     </div>
   );
 };

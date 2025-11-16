@@ -5,6 +5,7 @@ import HomeView from './views/HomeView';
 import MenusView from './views/MenusView';
 import ContactView from './views/ContactView';
 import LoginView from './views/LoginView';
+import RegisterView from './views/RegisterView';
 
 const router = createBrowserRouter([
   {
@@ -25,6 +26,10 @@ const router = createBrowserRouter([
       },
       { path: "/login", 
         element: <LoginView />,
+      },
+      {
+        path: "/register",
+        element: <RegisterView />,
       },
     ],
   },
