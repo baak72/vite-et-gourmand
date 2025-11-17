@@ -118,20 +118,38 @@ export const sendPasswordReset = async (email) => {
 
 /**
  * Récupère tous les menus depuis la collection Firestore.
- * @returns {Array} Un tableau d'objets, où chaque objet est un menu.
+ * @param {object} filters - Les filtres optionnels (prixMax, theme, regime).
+ * @returns {Array}
  */
-export const getMenus = async () => {
+export const getMenus = async (filters = {}) => {
   try {
     // 1. Crée une référence à notre collection "Menu"
     const menuCollectionRef = collection(db, "Menu");
 
-    // 2. Crée une requête pour récupérer tous les documents
-    const q = query(menuCollectionRef);
+    // 2. On crée un tableau pour stocker nos "règles" de filtrage
+    const queryConstraints = [];
 
-    // 3. Exécute la requête et récupère les "instantanés" (snapshots)
+    // 3. On remplit le tableau en fonction des filtres reçus
+    if (filters.prixMax) {
+      // Le prix doit être inférieur ou égal
+      queryConstraints.push(where("prix_par_personne", "<=", parseFloat(filters.prixMax)));
+    }
+    if (filters.theme && filters.theme !== 'all') {
+      // Le thème doit être égal
+      queryConstraints.push(where("theme_libelle", "==", filters.theme));
+    }
+    if (filters.regime && filters.regime !== 'all') {
+      // Le régime doit être égal
+      queryConstraints.push(where("regime_libelle", "==", filters.regime));
+    }
+
+    // 4. On construit la requête finale en appliquant tous nos filtres
+    const q = query(menuCollectionRef, ...queryConstraints);
+
+    // 5. Exécute la requête
     const querySnapshot = await getDocs(q);
 
-    // 4. Transforme les résultats en un tableau simple
+    // 6. Transforme les résultats en un tableau simple
     const menus = [];
     querySnapshot.forEach((doc) => {
       menus.push({
@@ -140,7 +158,7 @@ export const getMenus = async () => {
       });
     });
 
-    console.log("Menus récupérés :", menus.length);
+    console.log("Menus (filtrés) récupérés :", menus.length);
     return menus;
 
   } catch (error) {
