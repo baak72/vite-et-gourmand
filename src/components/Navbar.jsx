@@ -6,13 +6,12 @@ import { signOutUser } from '../utils/firebase';
 const Navbar = () => {
   const user = useAuthStore((state) => state.user);
   // On récupère l'action "clearUser"
-  const clearUser = useAuthStore((state) => state.clearUser);
+  useAuthStore((state) => state.clearUser);
   // On initialise l'outil de redirection
   const navigate = useNavigate(); 
   const handleLogout = async () => {
     try {
       await signOutUser(); // On appelle Firebase
-      clearUser();
       navigate('/'); // On redirige vers l'accueil
     } catch (error) {
       console.error("Erreur lors de la déconnexion :", error);

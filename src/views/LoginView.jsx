@@ -3,8 +3,6 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
-
-// On importe nos "machines"
 import { signInUser } from '../utils/firebase'; // Firebase
 import { useAuthStore } from '../store/useAuthStore'; // Zustand
 
@@ -18,7 +16,7 @@ const LoginView = () => {
   // --- 2. Initialisation des Outils ---
   const [firebaseError, setFirebaseError] = useState(null);
   const navigate = useNavigate();
-  const setUser = useAuthStore((state) => state.setUser);
+  useAuthStore((state) => state.setUser);
 
   // On initialise React Hook Form
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -30,13 +28,10 @@ const LoginView = () => {
     setFirebaseError(null); // On réinitialise les erreurs
     try {
       // Étape A: On appelle la Firebase
-      const userCredential = await signInUser(data.email, data.password);
-      
-      // Étape B: On connecte l'utilisateur
-      setUser(userCredential.user);
+      await signInUser(data.email, data.password);
 
-      // Étape C: On redirige l'utilisateur vers sa page de profil
-      navigate('/profil'); // (On créera cette page plus tard)
+      // Étape B: On redirige l'utilisateur vers sa page de profil
+      navigate('/profil');
 
     } catch (error) {
       console.error("Erreur de connexion Firebase :", error.message);
