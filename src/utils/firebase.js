@@ -318,3 +318,40 @@ export const getValidatedReviews = async () => {
     throw error;
   }
 };
+
+/**
+ * Récupère toutes les commandes pour un utilisateur spécifique.
+ * @param {string} userId - L'ID unique de l'utilisateur (le 'uid').
+ * @returns {Array} Un tableau d'objets (commandes).
+ */
+export const getOrdersByUserId = async (userId) => {
+  try {
+    // 1. Crée une référence à la collection "Commande"
+    const ordersCollectionRef = collection(db, "Commande");
+
+    // 2. Crée la requête avec le filtre sur l'ID utilisateur
+    const q = query(
+      ordersCollectionRef,
+      where("uid", "==", userId)
+    );
+
+    // 3. Exécute la requête
+    const querySnapshot = await getDocs(q);
+
+    // 4. Transforme les résultats en tableau
+    const orders = [];
+    querySnapshot.forEach((doc) => {
+      orders.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    console.log(`Commandes trouvées pour ${userId}:`, orders.length);
+    return orders;
+
+  } catch (error) {
+    console.error("Erreur lors de la récupération des commandes :", error.message);
+    throw error;
+  }
+};
