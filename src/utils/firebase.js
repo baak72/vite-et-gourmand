@@ -355,3 +355,48 @@ export const getOrdersByUserId = async (userId) => {
     throw error;
   }
 };
+
+/**
+ * Met à jour les informations d'un utilisateur dans Firestore.
+ * @param {string} uid - L'ID de l'utilisateur à mettre à jour.
+ * @param {object} data - Les nouvelles données (ex: { nom: "NouveauNom" }).
+ */
+export const updateUserProfile = async (uid, data) => {
+  try {
+    // 1. Crée une référence au document de l'utilisateur
+    const userDocRef = doc(db, "Utilisateur", uid);
+
+    // 2. Met à jour le document avec les nouvelles données
+    await updateDoc(userDocRef, data);
+    
+    console.log("Profil utilisateur mis à jour avec succès !");
+
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du profil :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Récupère le document d'un utilisateur depuis Firestore par son UID.
+ * @param {string} uid - L'ID de l'utilisateur (le 'uid').
+ * @returns {object|null} Les données du profil s'il est trouvé.
+ */
+export const getUserProfile = async (uid) => {
+  try {
+    // 1. Cible le document dans la collection "Utilisateur"
+    const docRef = doc(db, "Utilisateur", uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      // 2. Renvoie les données du profil
+      return docSnap.data();
+    } else {
+      console.warn("Aucun profil utilisateur trouvé pour cet UID:", uid);
+      return null;
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération du profil:", error.message);
+    throw error;
+  }
+};

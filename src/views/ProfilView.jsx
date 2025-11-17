@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { getOrdersByUserId } from '../utils/firebase';
 import OrderSummaryCard from '../components/OrderSummaryCard';
+import UpdateProfileForm from '../components/UpdateProfileForm';
 
 const ProfilView = () => {
   // On lit les infos de l'utilisateur
@@ -33,7 +34,7 @@ const ProfilView = () => {
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <h1 className="text-4xl font-bold text-green-700 mb-8">
-        Bonjour, {user?.displayName || "Utilisateur"} !
+        Bonjour, {user?.prenom || "Utilisateur"} !
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -42,15 +43,11 @@ const ProfilView = () => {
         <div className="md:col-span-1">
           <h2 className="text-2xl font-semibold text-zinc-800 mb-4">Mes Informations</h2>
           <div className="bg-white shadow-lg rounded-lg p-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-600">Email</label>
-                <p className="text-lg text-zinc-900">{user?.email}</p>
-              </div>
-              <p className="text-sm text-zinc-500">
-                (Ici, on ajoutera le formulaire pour modifier les informations)
-              </p>
-            </div>
+            {user ? (
+              <UpdateProfileForm user={user} />
+            ) : (
+              <p>Chargement...</p>
+            )}
           </div>
         </div>
 

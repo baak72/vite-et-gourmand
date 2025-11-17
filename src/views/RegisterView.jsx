@@ -32,7 +32,7 @@ const RegisterView = () => {
   // --- 2. Initialisation des Outils ---
   const [firebaseError, setFirebaseError] = useState(null);
   const navigate = useNavigate();
-  const setUser = useAuthStore((state) => state.setUser);
+  useAuthStore((state) => state.setUser);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(registerSchema),
@@ -48,10 +48,8 @@ const RegisterView = () => {
         prenom: data.prenom,
         telephone: data.telephone,
       };
-      const userCredential = await registerUser(data.email, data.password, additionalData);
       
-      // Étape B: On connecte l'utilisateur
-      setUser(userCredential.user);
+  await registerUser(data.email, data.password, additionalData);
 
       // Étape C: On redirige vers la page de profil
       navigate('/profil'); // (On créera cette page plus tard)

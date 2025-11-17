@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './utils/firebase';
+import { auth, getUserProfile } from './utils/firebase';
 import { useAuthStore } from './store/useAuthStore';
 
 import Layout from './components/Layout';
@@ -60,20 +60,24 @@ function App() {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    // onAuthStateChanged est le "détecteur" de Firebase
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setUser(user);
+        const profileData = await getUserProfile(user.uid);
+        const fullUserData = {
+          uid: user.uid,
+          email: user.email,
+          ...profileData // Contient nom, prenom, telephone, role_id...
+        };
+        
+        setUser(fullUserData);
       } else {
-        clearUser();
+        clearUser(); 
       }
-      // On a fini de vérifier, l'application peut se lancer
       setAuthReady(true);
     });
 
-    // On retourne la fonction "unsubscribe"
     return () => unsubscribe();
-  }, [setUser, clearUser]); // Dépendances du useEffect
+  }, [setUser, clearUser]);
 
   // 8. On n'affiche RIEN tant que le travail de vérification n'est pas terminé
   if (!authReady) {
