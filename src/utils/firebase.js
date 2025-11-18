@@ -421,24 +421,41 @@ export const getUserProfile = async (uid) => {
 
 /**
  * Récupère TOUTES les commandes (pour l'espace Employé/Admin).
- * Triées par date décroissante (plus récent en haut).
+ * Filtre les commandes si un statut est fourni.
+ * @param {string} statusFilter - Le statut à filtrer (ex: 'validé'). 'all' par défaut.
  */
-export const getAllOrders = async () => {
+export const getAllOrders = async (statusFilter = 'all') => {
   try {
     const ordersCollectionRef = collection(db, "Commande");
     
-    // Toutes les commandes, triées par date
-    const q = query(ordersCollectionRef, orderBy("date_commande", "desc"));
+    let q;
+    
+    // On construit les contraintes de requête
+    const queryConstraints = [];
+    
+    // Si l'utilisateur NE veut PAS toutes les commandes
+    if (statusFilter !== 'all') {
+      // On ajoute un filtre de statut à la requête
+      queryConstraints.push(where("statut", "==", statusFilter));
+    }
+    
+    // On ajoute toujours le tri par date
+    queryConstraints.push(orderBy("date_commande", "desc"));
 
+    // On construit la requête finale
+    q = query(ordersCollectionRef, ...queryConstraints);
+
+
+    // Exécute et renvoie le résultat
     const querySnapshot = await getDocs(q);
     const orders = [];
     querySnapshot.forEach((doc) => {
-      orders.push({
-        id: doc.id,
-        ...doc.data()
-      });
+      orders.push({ id: doc.id, ...doc.data() });
     });
+    
+    console.log(`Commandes globales (Filtre: ${statusFilter}) trouvées:`, orders.length);
     return orders;
+    
   } catch (error) {
     console.error("Erreur récupération globale commandes:", error);
     throw error;
