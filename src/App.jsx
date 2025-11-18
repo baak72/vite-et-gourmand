@@ -12,6 +12,7 @@ import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProfilView from './views/ProfilView';
+import MenuDetailView from './views/MenuDetailView';
 
 const router = createBrowserRouter([
   {
@@ -37,7 +38,10 @@ const router = createBrowserRouter([
         path: "/register",
         element: <RegisterView />,
       },
-
+      {
+        path: "/menu/:menuId",
+        element: <MenuDetailView />,
+      },
       {
         element: <ProtectedRoute />,
         children: [

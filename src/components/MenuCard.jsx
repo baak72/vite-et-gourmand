@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const MenuCard = ({ menu }) => {
   return (
@@ -15,13 +16,12 @@ const MenuCard = ({ menu }) => {
           <p className="text-sm text-zinc-500">À partir de</p>
           <p className="text-2xl font-bold text-zinc-900">{menu.prix_par_personne} €</p>
         </div>
-        {/* On utilisera <Link> ici plus tard */}
-        <a 
-          href={`/menu/${menu.id}`} 
+        <Link 
+          to={`/menu/${menu.id}`} 
           className="bg-amber-500 text-white font-bold px-4 py-2 rounded-md hover:bg-amber-600 transition-colors"
         >
           Voir le détail
-        </a>
+        </Link>
       </div>
     </div>
   );
