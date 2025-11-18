@@ -41,7 +41,7 @@ const ProfilView = () => {
         
         {/* --- Colonne de Gauche : Infos Personnelles --- */}
         <div className="md:col-span-1">
-          <h2 className="text-2xl font-semibold text-zinc-800 mb-4">Mes Informations</h2>
+          <h2 className="text-2xl text-center font-semibold text-zinc-800 mb-4">Mes Informations</h2>
           <div className="bg-white shadow-lg rounded-lg p-6">
             {user ? (
               <UpdateProfileForm user={user} />
@@ -53,7 +53,7 @@ const ProfilView = () => {
 
         {/* --- Colonne de Droite : Mes Commandes --- */}
         <div className="md:col-span-2">
-          <h2 className="text-2xl font-semibold text-zinc-800 mb-4">Mes Commandes</h2>
+          <h2 className="text-2xl text-center font-semibold text-zinc-800 mb-4">Mes Commandes</h2>
           
           {/* 6. On gère l'affichage des commandes */}
           {isLoading ? (

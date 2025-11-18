@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getMenuById } from '../utils/firebase';
+import { useAuthStore } from '../store/useAuthStore';
 
 const MenuDetailView = () => {
   // Outil pour récupérer le paramètre de l'URL
@@ -9,6 +10,10 @@ const MenuDetailView = () => {
   // États pour les données et le chargement
   const [menu, setMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // On initialise les outils
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
 
   // On va chercher le menu au chargement
   useEffect(() => {
@@ -25,7 +30,19 @@ const MenuDetailView = () => {
     };
 
     fetchMenu();
-  }, [menuId]); // Se relance si l'ID dans l'URL change
+  }, [menuId]);
+
+  const handleOrderClick = () => {
+    if (user) {
+      // Si l'utilisateur EST connecté
+      // On le redirige vers la page de commande, en passant l'ID du menu
+      navigate(`/commande/${menuId}`);
+    } else {
+      // Si l'utilisateur N'EST PAS connecté
+      // On le redirige vers la page de connexion
+      navigate('/login');
+    }
+  };
 
   // Gestion de l'affichage
   if (isLoading) {
@@ -60,6 +77,7 @@ const MenuDetailView = () => {
         </div>
 
         <button 
+          onClick={handleOrderClick}
           className="w-full bg-amber-500 text-white font-bold py-3 px-6 rounded-md text-lg hover:bg-amber-600 transition-colors"
         >
           Commander ce Menu

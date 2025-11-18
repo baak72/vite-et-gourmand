@@ -13,6 +13,7 @@ import RegisterView from './views/RegisterView';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProfilView from './views/ProfilView';
 import MenuDetailView from './views/MenuDetailView';
+import CommandeView from './views/CommandeView';
 
 const router = createBrowserRouter([
   {
@@ -48,6 +49,10 @@ const router = createBrowserRouter([
           {
             path: "/profil",
             element: <ProfilView />, 
+          },
+          {
+            path: "/commande/:menuId",
+            element: <CommandeView />,
           }
         ]
       } 
@@ -70,7 +75,7 @@ function App() {
         const fullUserData = {
           uid: user.uid,
           email: user.email,
-          ...profileData // Contient nom, prenom, telephone, role_id...
+          ...profileData
         };
         
         setUser(fullUserData);
@@ -83,7 +88,7 @@ function App() {
     return () => unsubscribe();
   }, [setUser, clearUser]);
 
-  // 8. On n'affiche RIEN tant que le travail de vérification n'est pas terminé
+  // On n'affiche RIEN tant que le travail de vérification n'est pas terminé
   if (!authReady) {
     return <div>Chargement de l'application...</div>; // (ou un spinner)
   }
