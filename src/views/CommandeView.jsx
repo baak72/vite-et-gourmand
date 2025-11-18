@@ -44,6 +44,9 @@ const orderSchema = z.object({
   facturation_complement: z.string().optional(),
   facturation_cp: z.string().optional(),
   facturation_ville: z.string().optional(),
+
+  // Case à cocher
+  pret_materiel: z.boolean().optional(),
   
   // Menu
   nombre_personne: z.coerce.number().min(1),
@@ -295,6 +298,19 @@ const CommandeView = () => {
                 </div>
               </div>
             )}
+
+            {/* Checkbox Prêt de Matériel */}
+            <div className="flex items-center mt-4">
+              <input 
+                id="pretMateriel" 
+                type="checkbox" 
+                {...register("pret_materiel")} // On enregistre ce champ
+                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+              />
+              <label htmlFor="pretMateriel" className="ml-2 block text-sm text-zinc-900">
+                Prêt de matériel nécessaire (vaisselle, etc.)
+              </label>
+            </div>
 
             {/* Instructions */}
             <div className="mt-4">

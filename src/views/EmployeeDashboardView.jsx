@@ -38,6 +38,19 @@ const EmployeeDashboardView = () => {
     }
   };
 
+  // Fonction utilitaire pour la couleur du statut
+  const getStatusStyle = (status) => {
+    switch(status) {
+      case 'en attente': return 'bg-yellow-100 text-yellow-800';
+      case 'validé': return 'bg-blue-100 text-blue-800';
+      case 'en préparation': return 'bg-amber-100 text-amber-800';
+      case 'en cours de livraison': return 'bg-indigo-100 text-indigo-800';
+      case 'en attente du retour de matériel': return 'bg-red-100 text-red-800';
+      case 'terminée': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (isLoading) return <p className="text-center p-8">Chargement du Dashboard...</p>;
 
   return (
@@ -102,7 +115,6 @@ const EmployeeDashboardView = () => {
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id}>
-                  {/* ... (Affichage des données de la commande) ... */}
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                     <p className="text-gray-900 whitespace-no-wrap font-bold">{order.nom} {order.prenom}</p>
                     <p className="text-gray-600 text-xs">{order.email}</p>
@@ -116,30 +128,83 @@ const EmployeeDashboardView = () => {
                     <p className="text-gray-600 text-xs">{order.heure_livraison}</p>
                   </td>
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                    <span className="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                      <span aria-hidden className="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                    {/* Style dynamique pour le statut */}
+                    <span className={`relative inline-block px-3 py-1 font-semibold leading-tight ${getStatusStyle(order.statut)} rounded-full`}>
                       <span className="relative">{order.statut}</span>
                     </span>
                   </td>
+                  
+                  {/* --- COLONNE D'ACTIONS --- */}
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm flex flex-col gap-2">
-                    {/* Boutons d'action rapides */}
+                    
+                    {/* 1. EN ATTENTE -> VALIDER */}
                     {order.statut === 'en attente' && (
                       <button 
                         onClick={() => handleStatusChange(order.id, 'validé')}
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs"
+                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-2 rounded text-xs"
                       >
-                        Valider
+                        Valider (Accepté)
                       </button>
                     )}
+                    
+                    {/* 2. VALIDÉ -> EN PRÉPARATION */}
                     {order.statut === 'validé' && (
                       <button 
                         onClick={() => handleStatusChange(order.id, 'en préparation')}
-                        className="bg-amber-500 hover:bg-amber-700 text-white font-bold py-1 px-2 rounded text-xs"
+                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded text-xs"
                       >
                         Préparer
                       </button>
                     )}
-                    {/* ... (Ajouter les autres statuts ici) ... */}
+
+                    {/* 3. EN PRÉPARATION -> EN COURS DE LIVRAISON */}
+                    {order.statut === 'en préparation' && (
+                      <button 
+                        onClick={() => handleStatusChange(order.id, 'en cours de livraison')}
+                        className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-1 px-2 rounded text-xs"
+                      >
+                        Passer à Livraison
+                      </button>
+                    )}
+
+                    {/* 4. EN COURS DE LIVRAISON -> LIVRÉ */}
+                    {order.statut === 'en cours de livraison' && (
+                      <>
+                        {/* 4a. Si Matériel prêt -> Statut intermédiare (en attente du retour) */}
+                        {order.pret_materiel ? (
+                          <button 
+                            onClick={() => handleStatusChange(order.id, 'en attente du retour de matériel')}
+                            className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-xs"
+                          >
+                            Livré (Matériel à suivre)
+                          </button>
+                        ) : (
+                          /* 4b. Si PAS de Matériel -> Terminé directement */
+                          <button 
+                            onClick={() => handleStatusChange(order.id, 'terminée')}
+                            className="bg-green-700 hover:bg-green-800 text-white font-bold py-1 px-2 rounded text-xs"
+                          >
+                            Livré (Finaliser)
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* 5. MATÉRIEL REÇU (-> terminé) */}
+                    {order.statut === 'en attente du retour de matériel' && (
+                      <button 
+                        onClick={() => handleStatusChange(order.id, 'terminée')}
+                        className="bg-green-700 hover:bg-green-800 text-white font-bold py-1 px-2 rounded text-xs"
+                      >
+                        Matériel Reçu (Terminer)
+                      </button>
+                    )}
+
+                    {/* 6. Affichage Statut Final */}
+                    {(order.statut === 'terminée' || order.statut === 'annulé') && (
+                      <span className="text-sm text-gray-500 font-medium">Commande Finalisée</span>
+                    )}
+
                   </td>
                 </tr>
               ))}
