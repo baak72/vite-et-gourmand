@@ -8,7 +8,9 @@ const Navbar = () => {
   // On récupère l'action "clearUser"
   useAuthStore((state) => state.clearUser);
   // On initialise l'outil de redirection
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const isEmployeeOrAdmin = user && user.role_id <= 2;
+  
   const handleLogout = async () => {
     try {
       await signOutUser(); // On appelle Firebase
@@ -44,19 +46,32 @@ const Navbar = () => {
             </Link>
           </li>
           
+          {/* --- LIEN EMPLOYE/ADMIN --- */}
+          {isEmployeeOrAdmin && (
+            <li>
+              <Link to="/employe/dashboard" className="text-amber-600 font-bold hover:text-amber-700">
+                Dashboard
+              </Link>
+            </li>
+          )}
+          
+          {/* --- CONNEXION / PROFIL --- */}
           <li>
             {user ? (
+              // Si l'utilisateur est connecté
               <>
                 <Link to="/profil" className="text-zinc-800 font-medium hover:text-green-700 mr-4">
                   Mon Compte
                 </Link>
-                <button
-                onClick={handleLogout} 
-                className="bg-zinc-200 text-zinc-800 font-bold px-4 py-2 rounded-md hover:bg-zinc-300 transition-colors">
+                <button 
+                  onClick={handleLogout}
+                  className="bg-zinc-200 text-zinc-800 font-bold px-4 py-2 rounded-md hover:bg-zinc-300 transition-colors"
+                >
                   Déconnexion
                 </button>
               </>
             ) : (
+              // Si personne n'est connecté
               <Link to="/login" className="bg-amber-500 text-white font-bold px-4 py-2 rounded-md hover:bg-amber-600 transition-colors">
                 Connexion
               </Link>

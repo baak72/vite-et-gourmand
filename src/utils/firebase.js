@@ -27,7 +27,7 @@ export const db = getFirestore(app); // On l'exporte pour notre base NoSQL
 export const functions = getFunctions(app); // On l'exporte pour les fonctions Cloud
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc, where } from "firebase/firestore"; 
+import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc, where, orderBy } from "firebase/firestore"; 
 
 // --- FONCTIONS BACK-END ---
 /**
@@ -415,6 +415,32 @@ export const getUserProfile = async (uid) => {
     }
   } catch (error) {
     console.error("Erreur lors de la récupération du profil:", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Récupère TOUTES les commandes (pour l'espace Employé/Admin).
+ * Triées par date décroissante (plus récent en haut).
+ */
+export const getAllOrders = async () => {
+  try {
+    const ordersCollectionRef = collection(db, "Commande");
+    
+    // Toutes les commandes, triées par date
+    const q = query(ordersCollectionRef, orderBy("date_commande", "desc"));
+
+    const querySnapshot = await getDocs(q);
+    const orders = [];
+    querySnapshot.forEach((doc) => {
+      orders.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    return orders;
+  } catch (error) {
+    console.error("Erreur récupération globale commandes:", error);
     throw error;
   }
 };

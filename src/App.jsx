@@ -14,6 +14,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ProfilView from './views/ProfilView';
 import MenuDetailView from './views/MenuDetailView';
 import CommandeView from './views/CommandeView';
+import RoleProtectedRoute from './components/RoleProtectedRoute';
+import EmployeeDashboardView from './views/EmployeeDashboardView';
 
 const router = createBrowserRouter([
   {
@@ -55,7 +57,16 @@ const router = createBrowserRouter([
             element: <CommandeView />,
           }
         ]
-      } 
+      },
+      {
+        element: <RoleProtectedRoute />,
+        children: [
+          {
+            path: "/employe/dashboard",
+            element: <EmployeeDashboardView />,
+          }
+        ]
+      }, 
     ], 
   }
 ]);
