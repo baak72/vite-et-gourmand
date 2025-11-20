@@ -461,3 +461,18 @@ export const getAllOrders = async (statusFilter = 'all') => {
     throw error;
   }
 };
+
+/**
+ * Appelle la Cloud Function pour envoyer le formulaire de contact.
+ */
+export const sendContactForm = async (formData) => {
+  try {
+    // La Cloud Function est nommée 'processContactForm'
+    const contactFunction = httpsCallable(functions, 'processContactForm');
+    const result = await contactFunction(formData);
+    return result.data;
+  } catch (error) {
+    console.error("Erreur Cloud Function (contact):", error.message);
+    throw error;
+  }
+};

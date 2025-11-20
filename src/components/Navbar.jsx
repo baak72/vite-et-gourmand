@@ -5,16 +5,15 @@ import { signOutUser } from '../utils/firebase';
 
 const Navbar = () => {
   const user = useAuthStore((state) => state.user);
-  // On récupère l'action "clearUser"
   useAuthStore((state) => state.clearUser);
-  // On initialise l'outil de redirection
   const navigate = useNavigate();
-  const isEmployeeOrAdmin = user && user.role_id <= 2;
+  const isEmployee = user && user.role_id === 2;
+  const isAdmin = user && user.role_id === 1;
   
   const handleLogout = async () => {
     try {
-      await signOutUser(); // On appelle Firebase
-      navigate('/'); // On redirige vers l'accueil
+      await signOutUser();
+      navigate('/');
     } catch (error) {
       console.error("Erreur lors de la déconnexion :", error);
     }
@@ -47,10 +46,18 @@ const Navbar = () => {
           </li>
           
           {/* --- LIEN EMPLOYE/ADMIN --- */}
-          {isEmployeeOrAdmin && (
+          {isEmployee && (
             <li>
               <Link to="/employe/dashboard" className="text-amber-600 font-bold hover:text-amber-700">
                 Dashboard
+              </Link>
+            </li>
+          )}
+
+          {isAdmin && (
+            <li>
+              <Link to="/admin/dashboard" className="text-red-600 font-bold hover:text-red-700">
+                ADMIN
               </Link>
             </li>
           )}

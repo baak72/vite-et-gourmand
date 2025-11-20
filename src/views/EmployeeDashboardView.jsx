@@ -75,12 +75,12 @@ const EmployeeDashboardView = () => {
           className="px-3 py-2 border border-zinc-300 rounded-md shadow-sm"
         >
           <option value="all">Toutes les commandes</option>
-          <option value="en attente">En attente (Nouvelles)</option>
+          <option value="en attente">En attente de validation</option>
           <option value="validé">Validé</option>
           <option value="en préparation">En préparation</option>
           <option value="en cours de livraison">En cours de livraison</option>
           <option value="livré">Livré</option>
-          <option value="en attente du retour de matériel">Matériel en attente</option>
+          <option value="en attente du retour de matériel">Attente du retour de matériel</option>
           <option value="terminée">Terminée</option>
         </select>
         {orders.length === 0 && statusFilter !== 'all' && (
@@ -128,7 +128,6 @@ const EmployeeDashboardView = () => {
                     <p className="text-gray-600 text-xs">{order.heure_livraison}</p>
                   </td>
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                    {/* Style dynamique pour le statut */}
                     <span className={`relative inline-block px-3 py-1 font-semibold leading-tight ${getStatusStyle(order.statut)} rounded-full`}>
                       <span className="relative">{order.statut}</span>
                     </span>
@@ -143,7 +142,7 @@ const EmployeeDashboardView = () => {
                         onClick={() => handleStatusChange(order.id, 'validé')}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-2 rounded text-xs"
                       >
-                        Valider (Accepté)
+                        Valider la Commande
                       </button>
                     )}
                     
@@ -153,7 +152,7 @@ const EmployeeDashboardView = () => {
                         onClick={() => handleStatusChange(order.id, 'en préparation')}
                         className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded text-xs"
                       >
-                        Préparer
+                        Préparer la Commande
                       </button>
                     )}
 
@@ -163,49 +162,48 @@ const EmployeeDashboardView = () => {
                         onClick={() => handleStatusChange(order.id, 'en cours de livraison')}
                         className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-1 px-2 rounded text-xs"
                       >
-                        Passer à Livraison
+                        Passer à la livraison
                       </button>
                     )}
 
-                    {/* 4. EN COURS DE LIVRAISON -> LIVRÉ */}
+                    {/* 4. EN COURS DE LIVRAISON -> (CONFIRMATION DE LA LIVRAISON + CLOTURE DE LA COMMANDE ou ATTENTE MATÉRIEL) */}
                     {order.statut === 'en cours de livraison' && (
                       <>
-                        {/* 4a. Si Matériel prêt -> Statut intermédiare (en attente du retour) */}
+                        {/* CAS A : AVEC MATÉRIEL -> On passe direct à 'en attente du retour' */}
                         {order.pret_materiel ? (
                           <button 
                             onClick={() => handleStatusChange(order.id, 'en attente du retour de matériel')}
-                            className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-xs"
+                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded text-xs"
                           >
-                            Livré (Matériel à suivre)
+                            Confirmer la livraison
                           </button>
                         ) : (
-                          /* 4b. Si PAS de Matériel -> Terminé directement */
+                          /* CAS B : SANS MATÉRIEL -> On passe à 'terminée' */
                           <button 
                             onClick={() => handleStatusChange(order.id, 'terminée')}
-                            className="bg-green-700 hover:bg-green-800 text-white font-bold py-1 px-2 rounded text-xs"
+                            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded text-xs"
                           >
-                            Livré (Finaliser)
+                            Confirmer la livraison (Clôture de la Commande)
                           </button>
                         )}
                       </>
                     )}
 
-                    {/* 5. MATÉRIEL REÇU (-> terminé) */}
+                    {/* 5. MATÉRIEL REÇU -> terminé */}
                     {order.statut === 'en attente du retour de matériel' && (
                       <button 
                         onClick={() => handleStatusChange(order.id, 'terminée')}
                         className="bg-green-700 hover:bg-green-800 text-white font-bold py-1 px-2 rounded text-xs"
                       >
-                        Matériel Reçu (Terminer)
+                        Matériel Reçu (Clôture de la Commande)
                       </button>
                     )}
 
                     {/* 6. Affichage Statut Final */}
                     {(order.statut === 'terminée' || order.statut === 'annulé') && (
-                      <span className="text-sm text-gray-500 font-medium">Commande Finalisée</span>
+                      <span className="text-sm text-gray-500 font-medium">Commande cloturée.</span>
                     )}
-
-                  </td>
+                </td>
                 </tr>
               ))}
             </tbody>

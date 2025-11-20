@@ -16,6 +16,9 @@ import MenuDetailView from './views/MenuDetailView';
 import CommandeView from './views/CommandeView';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import EmployeeDashboardView from './views/EmployeeDashboardView';
+import MentionsLegalesView from './views/MentionsLegalesView';
+import CGVView from './views/CGVView';
+import AdminDashboardView from './views/AdminDashboardView';
 
 const router = createBrowserRouter([
   {
@@ -45,6 +48,10 @@ const router = createBrowserRouter([
         path: "/menu/:menuId",
         element: <MenuDetailView />,
       },
+      { path: "/mentions-legales",
+        element: <MentionsLegalesView /> },
+      { path: "/cgv", 
+        element: <CGVView /> },
       {
         element: <ProtectedRoute />,
         children: [
@@ -64,6 +71,10 @@ const router = createBrowserRouter([
           {
             path: "/employe/dashboard",
             element: <EmployeeDashboardView />,
+          },
+          {
+            path: "/admin/dashboard",
+            element: <AdminDashboardView />,
           }
         ]
       }, 
