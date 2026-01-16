@@ -5,16 +5,22 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/useAuthStore';
 import { getMenuById, createOrder } from '../utils/firebase';
+import {
+  Calendar, Clock, MapPin, User, Building, Mail, Phone,
+  CheckCircle2, AlertCircle, Utensils, FileText, Truck, ArrowRight
+} from 'lucide-react';
 
-// --- 1. Fonction utilitaire pour la date ---
+// --- Fonction utilitaire pour la date ---
 const getMinDateFromCondition = (condition) => {
   const today = new Date();
   const cond = condition ? condition.toLowerCase() : "";
   let daysToAdd = 1;
+
   if (cond.includes("1 mois") || cond.includes("un mois")) daysToAdd = 30;
   else if (cond.includes("2 semaines") || cond.includes("15 jours")) daysToAdd = 15;
   else if (cond.includes("1 semaine") || cond.includes("une semaine")) daysToAdd = 7;
   else if (cond.includes("48h") || cond.includes("48 heures")) daysToAdd = 2;
+
   const minDate = new Date(today);
   minDate.setDate(today.getDate() + daysToAdd);
   return minDate.toISOString().split('T')[0];
@@ -22,34 +28,23 @@ const getMinDateFromCondition = (condition) => {
 
 // --- Schéma de Validation ---
 const orderSchema = z.object({
-  // Infos Perso
   nom: z.string(),
   prenom: z.string(),
   email: z.string().email(),
   gsm: z.string().min(10, "Numéro invalide"),
   nom_entreprise: z.string().optional(),
-  
-  // Prestation
   date_prestation: z.string().min(1, "Date requise"),
   heure_livraison: z.string().min(1, "Heure requise"),
-  
-  // Adresse Livraison
   livraison_rue: z.string().min(3, "Rue et numéro requis"),
   livraison_complement: z.string().optional(),
   livraison_cp: z.string().min(5, "Code postal invalide"),
   livraison_ville: z.string().min(2, "Ville requise"),
-
-  // Adresse Facturation
   facturation_rue: z.string().optional(),
   facturation_complement: z.string().optional(),
   facturation_cp: z.string().optional(),
   facturation_ville: z.string().optional(),
-
-  // Case à cocher
   pret_materiel: z.boolean().optional(),
-  
-  // Menu
-  nombre_personne: z.coerce.number().min(1),
+  nombre_personne: z.coerce.number().min(2, "Veuillez indiquer au moins 2 convives"),
   instructions: z.string().optional(),
 });
 
@@ -57,7 +52,7 @@ const CommandeView = () => {
   const { menuId } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  
+
   const [menu, setMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [orderError, setOrderError] = useState(null);
@@ -92,7 +87,7 @@ const CommandeView = () => {
     }
   }, [user, reset]);
 
-  // --- 3. Calcul du Prix ---
+  // --- Calcul du Prix ---
   const watchedNbPersonne = watch("nombre_personne");
   const watchedVille = watch("livraison_ville");
 
@@ -108,7 +103,6 @@ const CommandeView = () => {
       basePrice = basePrice * 0.90;
     }
 
-    // Frais si la ville n'est pas Bordeaux
     let frais = 0;
     if (watchedVille && !watchedVille.toLowerCase().trim().includes("bordeaux")) {
       frais = 5.00;
@@ -123,29 +117,24 @@ const CommandeView = () => {
     setOrderError(null);
     if (!menu) return;
 
-    // Validation Date
     const minDateStr = getMinDateFromCondition(menu.conditions);
     if (data.date_prestation < minDateStr) {
-      setError("date_prestation", { 
-        type: "manual", 
-        message: `Pour ce menu, la date doit être après le ${new Date(minDateStr).toLocaleDateString('fr-FR')}` 
+      setError("date_prestation", {
+        type: "manual",
+        message: `La date doit être après le ${new Date(minDateStr).toLocaleDateString('fr-FR')}`
       });
       return;
     }
 
-    // Validation Min Personnes
     if (data.nombre_personne < menu.nombre_personne_minimum) {
       setOrderError(`Minimum de ${menu.nombre_personne_minimum} personnes requis.`);
       return;
     }
 
-    // Construction des adresses complètes pour Firebase
     const fullDeliveryAddr = `${data.livraison_rue}, ${data.livraison_complement ? data.livraison_complement + ', ' : ''}${data.livraison_cp} ${data.livraison_ville}`;
-    
     let fullBillingAddr = fullDeliveryAddr;
 
     if (!sameBillingAddress) {
-      // Si adresses différentes, on valide que les champs facturation sont remplis
       if (!data.facturation_rue || !data.facturation_cp || !data.facturation_ville) {
         setOrderError("Veuillez remplir l'adresse de facturation complète.");
         return;
@@ -161,7 +150,6 @@ const CommandeView = () => {
         ...data,
         adresse_livraison: fullDeliveryAddr,
         adresse_facturation: fullBillingAddr,
-        
         prix_total: prixTotal,
         date_commande: new Date(),
         statut: "en attente"
@@ -176,187 +164,302 @@ const CommandeView = () => {
     }
   };
 
-  if (isLoading) return <p className="text-center p-8">Chargement...</p>;
-  if (!menu) return <p className="text-center p-8">Menu introuvable.</p>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center pt-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+      </div>
+    );
+  }
+
+  if (!menu) return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white">
+      <p>Menu introuvable.</p>
+    </div>
+  );
 
   const minDateInput = getMinDateFromCondition(menu.conditions);
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-3xl text-center font-bold text-green-700 mb-2">Finaliser ma Commande</h1>
-      <p className="text-xl text-center text-zinc-800 mb-6">Menu : <span className="font-semibold">{menu.nom_menu}</span></p>
+    <div className="min-h-screen bg-zinc-950 text-white pt-36 pb-12 px-4 sm:px-6 lg:px-8">
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        
-        {/* BLOC 1 : Identité */}
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <h2 className="text-2xl font-semibold text-zinc-800 mb-4">1. Vos Coordonnées</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-zinc-700">Nom de l'entreprise (Optionnel)</label>
-              <input type="text" {...register("nom_entreprise")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" placeholder="Ex: FastDev SAS" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700">Nom</label>
-              <input {...register("nom")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md bg-zinc-100" readOnly />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700">Prénom</label>
-              <input {...register("prenom")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md bg-zinc-100" readOnly />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700">Email</label>
-              <input {...register("email")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md bg-zinc-100" readOnly />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700">Téléphone</label>
-              <input {...register("gsm")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md bg-zinc-100" readOnly />
-            </div>
-          </div>
+      {/* Fond lumineux décoratif */}
+      <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-[100px]"></div>
+      </div>
+
+      <div className="max-w-5xl mx-auto relative z-10">
+
+        {/* En-tête */}
+        <div className="text-center mb-10">
+          <h2 className="text-amber-500 font-bold tracking-widest uppercase mb-2 text-xs">Finalisation</h2>
+          <h1 className="text-3xl md:text-5xl font-playfair font-bold text-white mb-4">
+            Votre Commande
+          </h1>
+          <p className="text-zinc-400 text-lg">
+            Vous avez choisi le menu <span className="text-white font-bold border-b border-amber-500">{menu.nom_menu}</span>
+          </p>
         </div>
 
-        {/* BLOC 2 : Livraison & Facturation */}
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <h2 className="text-2xl font-semibold text-zinc-800 mb-4">2. Livraison & Facturation</h2>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700">Date de livraison souhaitée</label>
-                <input type="date" min={minDateInput} {...register("date_prestation")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" />
-                <p className="mt-1 text-xs text-amber-600 font-medium">Condition : {menu.conditions}</p>
-                {errors.date_prestation && <p className="text-sm text-red-600">{errors.date_prestation.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700">Heure de livraison</label>
-                <input type="time" {...register("heure_livraison")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" />
-                {errors.heure_livraison && <p className="mt-1 text-sm text-red-600">{errors.heure_livraison.message}</p>}
-              </div>
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
 
-            <hr className="border-zinc-200 my-4" />
-            <p className="font-medium text-zinc-700 mb-2">Adresse de Livraison</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-zinc-700">Numéro et Rue</label>
-                <input type="text" {...register("livraison_rue")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" placeholder="Ex: 12 Avenue de la République" />
-                {errors.livraison_rue && <p className="text-sm text-red-600">{errors.livraison_rue.message}</p>}
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-zinc-700">Complément d'adresse (Optionnel)</label>
-                <input type="text" {...register("livraison_complement")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" placeholder="Ex: Bâtiment B, 2ème étage" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700">Code Postal</label>
-                <input type="text" {...register("livraison_cp")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" placeholder="Ex: 33000" />
-                {errors.livraison_cp && <p className="text-sm text-red-600">{errors.livraison_cp.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700">Ville</label>
-                <input type="text" {...register("livraison_ville")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" placeholder="Ex: Bordeaux" />
-                {errors.livraison_ville && <p className="text-sm text-red-600">{errors.livraison_ville.message}</p>}
-              </div>
-            </div>
-            <p className="mt-1 text-xs text-zinc-500">Note: 5€ de frais de livraison sont ajoutés si la ville n'est pas "Bordeaux".</p>
+            {/* === COLONNE GAUCHE (IDENTITÉ & LOGISTIQUE) === */}
+            <div className="lg:col-span-2 space-y-8">
 
-            {/* Checkbox Facturation */}
-            <div className="flex items-center mt-6">
-              <input 
-                id="sameAddress" 
-                type="checkbox" 
-                checked={sameBillingAddress}
-                onChange={(e) => setSameBillingAddress(e.target.checked)}
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label htmlFor="sameAddress" className="ml-2 block text-sm text-zinc-900">
-                Adresse de facturation identique à la livraison
-              </label>
-            </div>
+              {/* BLOC 1 : Identité */}
+              <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                  <User className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-xl font-bold font-montserrat">Vos Coordonnées</h2>
+                </div>
 
-            {/* Adresse Facturation (Si différente) */}
-            {!sameBillingAddress && (
-              <div className="mt-4 p-4 bg-zinc-50 rounded-md border border-zinc-200">
-                <p className="font-medium text-zinc-700 mb-3">Adresse de Facturation</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-zinc-700">Numéro et Rue</label>
-                    <input type="text" {...register("facturation_rue")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" />
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Entreprise (Optionnel)</label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                      <input type="text" {...register("nom_entreprise")} className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl pl-10 pr-4 py-3 focus:border-amber-500 focus:outline-hidden transition-colors placeholder:text-zinc-700" placeholder="Ex: FastDev SAS" />
+                    </div>
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-zinc-700">Complément (Optionnel)</label>
-                    <input type="text" {...register("facturation_complement")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" />
+
+                  {/* Champs ReadOnly (Grisés) */}
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Nom</label>
+                    <input {...register("nom")} className="w-full bg-zinc-950 border border-zinc-800 text-zinc-400 rounded-xl px-4 py-3 cursor-not-allowed opacity-70" readOnly />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700">Code Postal</label>
-                    <input type="text" {...register("facturation_cp")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" />
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Prénom</label>
+                    <input {...register("prenom")} className="w-full bg-zinc-950 border border-zinc-800 text-zinc-400 rounded-xl px-4 py-3 cursor-not-allowed opacity-70" readOnly />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700">Ville</label>
-                    <input type="text" {...register("facturation_ville")} className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" />
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                      <input {...register("email")} className="w-full bg-zinc-950 border border-zinc-800 text-zinc-400 rounded-xl pl-10 pr-4 py-3 cursor-not-allowed opacity-70" readOnly />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Téléphone</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                      <input {...register("gsm")} className="w-full bg-zinc-950 border border-zinc-800 text-zinc-400 rounded-xl pl-10 pr-4 py-3 cursor-not-allowed opacity-70" readOnly />
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Checkbox Prêt de Matériel */}
-            <div className="flex items-center mt-4">
-              <input 
-                id="pretMateriel" 
-                type="checkbox" 
-                {...register("pret_materiel")} // On enregistre ce champ
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label htmlFor="pretMateriel" className="ml-2 block text-sm text-zinc-900">
-                Prêt de matériel nécessaire (vaisselle, etc.)
-              </label>
+              {/* BLOC 2 : Livraison */}
+              <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                  <Truck className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-xl font-bold font-montserrat">Livraison</h2>
+                </div>
+
+                <div className="space-y-6">
+
+                  {/* --- Date & Heure --- */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Date */}
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Date souhaitée</label>
+                      <div className="relative group">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-amber-500 transition-colors pointer-events-none z-10" />
+                        <input
+                          type="date"
+                          min={minDateInput}
+                          {...register("date_prestation")}
+                          className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl pl-10 pr-4 py-3 focus:border-amber-500 focus:outline-none transition-colors cursor-pointer scheme-dark [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        />
+                      </div>
+                      <p className="mt-1 text-[10px] text-amber-500/80 font-medium">Condition : {menu.conditions}</p>
+                      {errors.date_prestation && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.date_prestation.message}</p>}
+                    </div>
+
+                    {/* Heure */}
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Heure souhaitée</label>
+                      <div className="relative group">
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-amber-500 transition-colors pointer-events-none z-10" />
+                        <input
+                          type="time"
+                          {...register("heure_livraison")}
+                          className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl pl-10 pr-4 py-3 focus:border-amber-500 focus:outline-none transition-colors cursor-pointer scheme-dark [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        />
+                      </div>
+                      {errors.heure_livraison && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.heure_livraison.message}</p>}
+                    </div>
+                  </div>
+
+                  {/* Adresse */}
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-4 h-4 text-zinc-500" />
+                      <span className="text-sm font-bold text-zinc-300">Adresse de Livraison</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <input type="text" {...register("livraison_rue")} className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl px-4 py-3 focus:border-amber-500 focus:outline-hidden transition-colors placeholder:text-zinc-700" placeholder="Numéro et rue" />
+                        {errors.livraison_rue && <p className="text-xs text-red-400 mt-1">{errors.livraison_rue.message}</p>}
+                      </div>
+                      <div className="md:col-span-2">
+                        <input type="text" {...register("livraison_complement")} className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl px-4 py-3 focus:border-amber-500 focus:outline-hidden transition-colors placeholder:text-zinc-700" placeholder="Complément (Bâtiment, étage...)" />
+                      </div>
+                      <div>
+                        <input type="text" {...register("livraison_cp")} className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl px-4 py-3 focus:border-amber-500 focus:outline-hidden transition-colors placeholder:text-zinc-700" placeholder="Code Postal" />
+                        {errors.livraison_cp && <p className="text-xs text-red-400 mt-1">{errors.livraison_cp.message}</p>}
+                      </div>
+                      <div>
+                        <input type="text" {...register("livraison_ville")} className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl px-4 py-3 focus:border-amber-500 focus:outline-hidden transition-colors placeholder:text-zinc-700" placeholder="Ville" />
+                        {errors.livraison_ville && <p className="text-xs text-red-400 mt-1">{errors.livraison_ville.message}</p>}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 italic">Note : 5€ de frais supplémentaires hors Bordeaux.</p>
+                  </div>
+
+                  {/* Options Facturation */}
+                  <div className="pt-4 border-t border-white/5 space-y-4">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={sameBillingAddress}
+                          onChange={(e) => setSameBillingAddress(e.target.checked)}
+                          className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-zinc-700 bg-zinc-950 transition-all checked:border-amber-500 checked:bg-amber-500"
+                        />
+                        <CheckCircle2 className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity" />
+                      </div>
+                      <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">Adresse de facturation identique</span>
+                    </label>
+
+                    {/* Bloc Adresse Facturation si différent */}
+                    {!sameBillingAddress && (
+                      <div className="p-4 bg-zinc-950/30 rounded-xl border border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <p className="font-bold text-zinc-400 text-sm mb-3">Adresse de Facturation</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2">
+                            <input type="text" {...register("facturation_rue")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-hidden" placeholder="Rue" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <input type="text" {...register("facturation_complement")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-hidden" placeholder="Complément" />
+                          </div>
+                          <div>
+                            <input type="text" {...register("facturation_cp")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-hidden" placeholder="CP" />
+                          </div>
+                          <div>
+                            <input type="text" {...register("facturation_ville")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-hidden" placeholder="Ville" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Options Matériel & Instructions */}
+                  <div className="pt-4 border-t border-white/5 space-y-4">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative flex items-center">
+                        <input
+                          type="checkbox"
+                          {...register("pret_materiel")}
+                          className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-zinc-700 bg-zinc-950 transition-all checked:border-amber-500 checked:bg-amber-500"
+                        />
+                        <Utensils className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-black opacity-0 peer-checked:opacity-100 transition-opacity" />
+                      </div>
+                      <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">Prêt de matériel (vaisselle, etc.)</span>
+                    </label>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Instructions spéciales</label>
+                      <textarea
+                        {...register("instructions")}
+                        rows="3"
+                        className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl px-4 py-3 focus:border-amber-500 focus:outline-hidden transition-colors placeholder:text-zinc-700 resize-none"
+                        placeholder="Code porte, intolérances, précisions..."
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            {/* Instructions */}
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-zinc-700">Instructions spéciales (code porte, allergie...)</label>
-              <textarea {...register("instructions")} rows="3" className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" placeholder="Note pour la commande…"></textarea>
+            {/* COLONNE DROITE (RÉCAPITULATIF & VALIDATION) */}
+            <div className="lg:col-span-1">
+              <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-xl sticky top-28">
+                <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                  <FileText className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-xl font-bold font-montserrat">Récapitulatif</h2>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                        Nombre de convives
+                      </label>
+                      <input
+                        type="number"
+                        min={menu.nombre_personne_minimum}
+                        {...register("nombre_personne")}
+                        className="
+                              w-full bg-zinc-950 border border-zinc-800 
+                              text-white font-bold text-lg rounded-xl px-4 py-3 
+                              focus:border-amber-500 focus:outline-none text-center
+                              
+                              /* --- Suppression des flèches --- */
+                              [appearance:textfield] 
+                              [&::-webkit-outer-spin-button]:appearance-none 
+                              [&::-webkit-inner-spin-button]:appearance-none
+                            "
+                      />
+                      {errors.nombre_personne && (
+                        <p className="text-xs text-red-400 mt-1 text-center">
+                          {errors.nombre_personne.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-xs text-amber-200/80 leading-relaxed">
+                    <span className="font-bold text-amber-500 block mb-1">Offre de groupe :</span>
+                    Profitez de <span className="text-white font-bold">-10%</span> dès {menu.nombre_personne_minimum + 5} personnes.
+                  </div>
+
+                  <div className="py-6 border-t border-b border-white/5 text-center">
+                    <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Total estimé (TTC)</p>
+                    <p className="text-4xl font-playfair font-bold text-amber-500">{prixTotal}</p>
+                  </div>
+
+                  {orderError && (
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center justify-center gap-2 text-center">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {orderError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-amber-500 text-black font-montserrat font-bold uppercase tracking-widest py-3 px-5 rounded-xl hover:bg-amber-400 hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_20px_rgba(245,158,11,0.2)] flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      "Validation..."
+                    ) : (
+                      <>
+                        Valider la commande <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[10px] text-center text-zinc-600">Paiement à la livraison ou sur facture.</p>
+                </div>
+              </div>
             </div>
+
           </div>
-        </div>
-
-        {/* BLOC 3 : Le Menu */}
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <h2 className="text-2xl font-semibold text-zinc-800 mb-4">3. Votre Commande</h2>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Nombre de personnes</label>
-            <input 
-              type="number" 
-              min={menu.nombre_personne_minimum} 
-              {...register("nombre_personne")} 
-              className="mt-1 block w-full px-3 py-2 border border-zinc-300 rounded-md" 
-            />
-            <p className="mt-2 text-sm text-zinc-600 italic">
-              Ce menu est disponible à partir de {menu.nombre_personne_minimum} convives. 
-              <span className="text-green-700 font-medium ml-1">
-                Profitez d'une remise exceptionnelle de 10% pour les groupes de {menu.nombre_personne_minimum + 5} personnes ou plus.
-              </span>
-            </p>
-            {errors.nombre_personne && <p className="mt-1 text-sm text-red-600">{errors.nombre_personne.message}</p>}
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-zinc-200 flex justify-between items-center">
-            <span className="text-zinc-600">Total estimé (TTC)</span>
-            <h3 className="text-3xl font-bold text-green-700">{prixTotal}</h3>
-          </div>
-        </div>
-
-        {orderError && <p className="text-sm text-red-600 text-center">{orderError}</p>}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-amber-500 text-white font-bold py-4 px-6 rounded-md text-xl hover:bg-amber-600 transition-colors disabled:bg-zinc-400 shadow-md"
-        >
-          {isSubmitting ? "Validation en cours..." : "Valider et Payer à la livraison"}
-        </button>
-
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

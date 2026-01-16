@@ -13,7 +13,7 @@ const ProtectedRoute = () => {
     return <Outlet />; // On affiche la page ProfilView
   }
   
-  // 4. Si on a fini de vérifier ET que loggedIn est FAUX
+  // Si on a fini de vérifier ET que loggedIn est FAUX
   return <Navigate to="/login" replace />; // On renvoie à la connexion
 };
 

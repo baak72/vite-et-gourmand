@@ -1,15 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { signOutUser } from '../utils/firebase';
+import { User, LogOut } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 const Navbar = () => {
   const user = useAuthStore((state) => state.user);
-  useAuthStore((state) => state.clearUser);
   const navigate = useNavigate();
-  const isEmployee = user && user.role_id === 2;
+
+  {/* --- États --- */}
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  {/* --- Logique scroll --- */}
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      {/* --- 1. Style de fond --- */}
+      if (currentScrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+
+      {/* --- 2. Visibilité --- */}
+      if (currentScrollY > lastScrollY && currentScrollY > 10) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
+  const isStaff = user && user.role_id <= 2;
   const isAdmin = user && user.role_id === 1;
-  
+
   const handleLogout = async () => {
     try {
       await signOutUser();
@@ -19,73 +52,104 @@ const Navbar = () => {
     }
   };
 
+  {/* --- Styles --- */}
+  const bgClasses = isScrolled
+    ? "bg-black/70 backdrop-blur-xl shadow-2xl border-white/10 py-3"
+    : "bg-black/45 backdrop-blur-[5px] border-white/5 py-3";
+
+  const visibilityClasses = isVisible
+    ? "translate-y-0 opacity-100"
+    : "-translate-y-[150%] opacity-0";
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+    <nav
+      className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl rounded-full border transition-all duration-700 ease-in-out ${bgClasses} ${visibilityClasses}`}
+    >
+      <style>{`
+          .font-montserrat { font-family: 'Montserrat', sans-serif; }
+      `}</style>
 
-        <Link to="/" className="text-2xl font-bold text-green-700">
-          Vite & Gourmand
+      <div className="px-6 md:px-8 flex justify-between items-center">
+
+        {/* --- LOGO --- */}
+        <Link to="/" className="relative z-10 flex items-center gap-2 group">
+          <img
+            src={logo}
+            alt="Logo"
+            className="h-8 md:h-10 w-auto"
+          />
         </Link>
 
-        <ul className="flex space-x-6 items-center">
-          <li>
-            <Link to="/" className="text-zinc-800 font-medium hover:text-green-700">
-              Accueil
-            </Link>
-          </li>
-          <li>
-            <Link to="/menus" className="text-zinc-800 font-medium hover:text-green-700">
-              Menus
-            </Link>
-          </li>
-          <li>
-            <Link to="/contact" className="text-zinc-800 font-medium hover:text-green-700">
-              Contact
-            </Link>
-          </li>
-          
-          {/* --- LIEN EMPLOYE/ADMIN --- */}
-          {isEmployee && (
-            <li>
-              <Link to="/employe/dashboard" className="text-amber-600 font-bold hover:text-amber-700">
-                Dashboard
-              </Link>
-            </li>
+        {/* --- MENU CENTRAL --- */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+          <ul className="flex items-center gap-8 font-montserrat text-[11px] tracking-[0.2em] font-bold uppercase text-white">
+            {['Accueil', 'Menus', 'Contact'].map((item) => {
+              const path = item === 'Accueil' ? '/' : `/${item.toLowerCase()}`;
+              return (
+                <li key={item}>
+                  <Link
+                    to={path}
+                    className="relative group py-2 px-1 hover:text-amber-400 transition-colors duration-300"
+                  >
+                    {item}
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full opacity-0 transition-all duration-300 group-hover:opacity-100"></span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* --- ACTIONS DROITE --- */}
+        <div className="flex items-center gap-5 font-montserrat">
+
+          {(isStaff || isAdmin) && (
+            <div className="hidden lg:flex items-center gap-2">
+              {isStaff && (
+                <Link to="/employe/dashboard" className="px-3 py-1 rounded-full border border-green-500/50 text-green-400 text-[9px] font-bold uppercase tracking-wider hover:bg-green-500/10 transition-colors">
+                  Staff
+                </Link>
+              )}
+              {isAdmin && (
+                <Link to="/admin/dashboard" className="px-3 py-1 rounded-full border border-red-500/50 text-red-400 text-[9px] font-bold uppercase tracking-wider hover:bg-red-500/10 transition-colors">
+                  Admin
+                </Link>
+              )}
+            </div>
           )}
 
-          {isAdmin && (
-            <li>
-              <Link to="/admin/dashboard" className="text-red-600 font-bold hover:text-red-700">
-                ADMIN
-              </Link>
-            </li>
-          )}
-          
-          {/* --- CONNEXION / PROFIL --- */}
-          <li>
+          <div className="h-3 w-px bg-white/10 hidden md:block"></div>
+
+          <div>
             {user ? (
-              // Si l'utilisateur est connecté
-              <>
-                <Link to="/profil" className="text-zinc-800 font-medium hover:text-green-700 mr-4">
-                  Mon Compte
-                </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="bg-zinc-200 text-zinc-800 font-bold px-4 py-2 rounded-md hover:bg-zinc-300 transition-colors"
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/profil"
+                  className="text-white hover:text-amber-400 transition-colors duration-300 bg-white/15 p-2 rounded-full hover:bg-white/10"
+                  title="Mon Compte"
                 >
-                  Déconnexion
+                  <User className="w-4 h-4" />
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="text-white/60 hover:text-red-400 transition-colors duration-300 p-2"
+                  title="Déconnexion"
+                >
+                  <LogOut className="w-5 h-5" />
                 </button>
-              </>
+              </div>
             ) : (
-              // Si personne n'est connecté
-              <Link to="/login" className="bg-amber-500 text-white font-bold px-4 py-2 rounded-md hover:bg-amber-600 transition-colors">
+              <Link
+                to="/login"
+                className="px-6 py-2.5 rounded-full bg-amber-400 text-zinc-900 text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-white/5"
+              >
                 Connexion
               </Link>
             )}
-          </li>
-        </ul>
+          </div>
 
+        </div>
       </div>
     </nav>
   );

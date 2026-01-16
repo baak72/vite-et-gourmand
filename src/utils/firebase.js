@@ -1,13 +1,12 @@
-// 1. Importation de tout
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 
-// 2. L'objet de configuration personnel 
+// L'objet de configuration personnel 
 const firebaseConfig = {
-  apiKey: "AIzaSyDftTtvyK1w9BcJS5kDvPIkfDj-gLpLkpI", // Clé API
+  apiKey: "AIzaSyDftTtvyK1w9BcJS5kDvPIkfDj-gLpLkpI",
   authDomain: "vite-et-gourmand.firebaseapp.com",
   projectId: "vite-et-gourmand",
   storageBucket: "vite-et-gourmand.firebasestorage.app",
@@ -16,22 +15,22 @@ const firebaseConfig = {
   measurementId: "G-L4PDLYSH9J" // Clé Analytics
 };
 
-// 3. Initialisation de l'application Firebase
+// Initialisation de l'application Firebase
 const app = initializeApp(firebaseConfig);
 
-// 4. Activation des services Firebase
+// Activation des services Firebase
 // eslint-disable-next-line no-unused-vars
-const analytics = getAnalytics(app); // C'est pour Google Analytics
-export const auth = getAuth(app); // On l'exporte pour gérer les connexions
-export const db = getFirestore(app); // On l'exporte pour notre base NoSQL
-export const functions = getFunctions(app); // On l'exporte pour les fonctions Cloud
+const analytics = getAnalytics(app); // Google Analytics
+export const auth = getAuth(app); // Pour gérer les connexions
+export const db = getFirestore(app); // Pour notre base NoSQL
+export const functions = getFunctions(app); // Pour les fonctions Cloud
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
 import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc, where, orderBy } from "firebase/firestore"; 
 
 // --- FONCTIONS BACK-END ---
 /**
- * Crée un nouvel utilisateur (Auth) et sauvegarde ses données (Firestore).
+ * Crée un nouvel utilisateur et sauvegarde ses données.
  * @param {string} email - L'email de l'utilisateur.
  * @param {string} password - Le mot de passe de l'utilisateur.
  * @param {object} additionalData - Données supplémentaires (nom, prenom, etc.)
@@ -64,7 +63,7 @@ export const registerUser = async (email, password, additionalData) => {
   } catch (error) {
     // Gérer les erreurs (ex: mot de passe trop faible, email déjà pris)
     console.error("Erreur lors de la création de l'utilisateur :", error.message);
-    throw error; // Renvoie l'erreur pour que le Front-End puisse l'afficher
+    throw error;
   }
 };
 
@@ -85,7 +84,7 @@ export const signInUser = async (email, password) => {
   } catch (error) {
     // Gérer les erreurs (ex: mot de passe incorrect, utilisateur inconnu)
     console.error("Erreur lors de la connexion :", error.message);
-    throw error; // Renvoie l'erreur pour que le Front-End puisse l'afficher
+    throw error;
   }
 };
 
@@ -255,31 +254,14 @@ export const updateOrderStatus = async (orderId, newStatus) => {
   }
 };
 
-/**
- * Appelle la Cloud Function sécurisée pour créer un compte employé.
- * (Fonction réservée à l'Admin)
- * @param {string} email - L'email du nouvel employé.
- * @param {string} password - Le mot de passe du nouvel employé.
- * @returns {object} La réponse du serveur.
- */
-export const createEmployee = async (email, password) => {
+// Crée un compte employé (Admin seulement).
+export const createEmployee = async (email, password, nom, prenom) => {
   try {
-    // 1. Prépare la référence à notre Cloud Function
     const createEmployeeFunction = httpsCallable(functions, 'createEmployeeAccount');
-
-    // 2. Appelle la fonction en lui passant les données
-    const result = await createEmployeeFunction({ 
-      email: email, 
-      password: password 
-    });
-
-    // 3. Renvoie la réponse du serveur (ex: { status: 'success', ... })
-    console.log("Réponse de la Cloud Function :", result.data);
+    const result = await createEmployeeFunction({ email, password, nom, prenom });
     return result.data;
-
   } catch (error) {
-    // Gère les erreurs (ex: "permission-denied")
-    console.error("Erreur lors de l'appel de la Cloud Function :", error.message);
+    console.error("Erreur Cloud Function (create) :", error.message);
     throw error;
   }
 };
@@ -339,33 +321,30 @@ export const getValidatedReviews = async () => {
 
 /**
  * Récupère toutes les commandes pour un utilisateur spécifique.
- * @param {string} userId - L'ID unique de l'utilisateur (le 'uid').
- * @returns {Array} Un tableau d'objets (commandes).
+ * Triées par date (de la plus récente à la plus ancienne).
  */
 export const getOrdersByUserId = async (userId) => {
   try {
     // 1. Crée une référence à la collection "Commande"
     const ordersCollectionRef = collection(db, "Commande");
 
-    // 2. Crée la requête avec le filtre sur l'ID utilisateur
+    // 2. Crée la requête avec le filtre ET le tri
     const q = query(
       ordersCollectionRef,
-      where("uid", "==", userId)
+      where("uid", "==", userId),
+      orderBy("date_commande", "desc") 
     );
 
     // 3. Exécute la requête
     const querySnapshot = await getDocs(q);
 
-    // 4. Transforme les résultats en tableau
-    const orders = [];
-    querySnapshot.forEach((doc) => {
-      orders.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    // 4. Transforme les résultats
+    const orders = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
-    console.log(`Commandes trouvées pour ${userId}:`, orders.length);
+    console.log(`Commandes trouvées et triées pour ${userId}:`, orders.length);
     return orders;
 
   } catch (error) {
@@ -467,12 +446,98 @@ export const getAllOrders = async (statusFilter = 'all') => {
  */
 export const sendContactForm = async (formData) => {
   try {
-    // La Cloud Function est nommée 'processContactForm'
     const contactFunction = httpsCallable(functions, 'processContactForm');
     const result = await contactFunction(formData);
     return result.data;
   } catch (error) {
     console.error("Erreur Cloud Function (contact):", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Récupère la liste de tous les employés.
+ */
+export const getEmployees = async () => {
+  try {
+    const usersRef = collection(db, "Utilisateur");
+    // On cherche seulement ceux qui ont le rôle 2 (Employé)
+    const q = query(usersRef, where("role_id", "==", 2));
+    
+    const querySnapshot = await getDocs(q);
+    const employees = [];
+    querySnapshot.forEach((doc) => {
+      employees.push({ id: doc.id, ...doc.data() });
+    });
+    return employees;
+  } catch (error) {
+    console.error("Erreur récupération employés :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Réactive un compte employé (Admin seulement).
+ */
+export const reactivateEmployee = async (uid) => {
+  try {
+    const fn = httpsCallable(functions, 'reactivateEmployeeAccount');
+    const result = await fn({ uid });
+    return result.data;
+  } catch (error) {
+    console.error("Erreur Cloud Function (reactivate) :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Supprime un compte employé (Admin seulement).
+ */
+export const deleteEmployee = async (uid) => {
+  try {
+    const fn = httpsCallable(functions, 'deleteEmployeeAccount');
+    const result = await fn({ uid });
+    return result.data;
+  } catch (error) {
+    console.error("Erreur Cloud Function (delete) :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Annule une commande (Action Client).
+ * N'est autorisé que si le statut est "en attente".
+ */
+export const cancelOrder = async (orderId) => {
+  try {
+    const orderDocRef = doc(db, "Commande", orderId);
+    // On passe simplement le statut à 'annulé'
+    await updateDoc(orderDocRef, { statut: "annulé" });
+    console.log("Commande annulée :", orderId);
+  } catch (error) {
+    console.error("Erreur annulation commande :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Crée un avis client.
+ * @param {object} reviewData - Données de l'avis (note, description, user info, orderId).
+ */
+export const addReview = async (reviewData) => {
+  try {
+    const reviewsCollectionRef = collection(db, "Avis");
+    
+    const dataToSave = {
+      ...reviewData,
+      statut: "en attente", // IMPORTANT : Doit être validé par un employé
+      date_creation: serverTimestamp()
+    };
+
+    await addDoc(reviewsCollectionRef, dataToSave);
+    console.log("Avis envoyé pour modération.");
+  } catch (error) {
+    console.error("Erreur lors de l'envoi de l'avis :", error.message);
     throw error;
   }
 };

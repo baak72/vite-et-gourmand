@@ -3,8 +3,10 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './utils/firebase';
 import { useAuthStore } from './store/useAuthStore';
-
+import { ReactLenis } from 'lenis/react'
+import 'lenis/dist/lenis.css'
 import Layout from './components/Layout';
+import ScrollToTop from './components/ScrollToTop';
 import HomeView from './views/HomeView';
 import MenusView from './views/MenusView';
 import ContactView from './views/ContactView';
@@ -22,8 +24,14 @@ import AdminDashboardView from './views/AdminDashboardView';
 
 const router = createBrowserRouter([
   {
-    element: <Layout />,
-    // (Possiblité d'ajouter une page d'erreur ici plus tard)
+    
+    element: (
+      <>
+        <ScrollToTop />
+        <Layout />
+      </>
+    ),
+    // (Possibilité d'ajouter une page d'erreur ici plus tard)
     children: [
       {
         path: "/",
@@ -112,11 +120,13 @@ function App() {
 
   // On n'affiche RIEN tant que le travail de vérification n'est pas terminé
   if (!authReady) {
-    return <div>Chargement de l'application...</div>; // (ou un spinner)
+    return <div>Chargement de l'application...</div>;
   }
   
   return (
-    <RouterProvider router={router} />
+    <ReactLenis root>
+      <RouterProvider router={router} />
+    </ReactLenis>
   );
 }
 

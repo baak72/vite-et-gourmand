@@ -1,103 +1,120 @@
-// 1. Importer les outils
 const nodemailer = require("nodemailer");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
-const {initializeApp} = require("firebase-admin/app");
-const {getAuth} = require("firebase-admin/auth");
-const {getFirestore} = require("firebase-admin/firestore");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { initializeApp } = require("firebase-admin/app");
+const { getAuth } = require("firebase-admin/auth");
+const { getFirestore } = require("firebase-admin/firestore");
 
+// Configuration de Nodemailer
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "contact.viteetgourmand@gmail.com",
+    pass: "gitjacluzqmslxtz"
+  }
+});
+
+// 2. Initialiser l'Admin SDK
 initializeApp();
 
-// Définir la fonction "createEmployeeAccount"
+// ------------------------------------------------------------------
+// FONCTION 1 : CRÉER UN COMPTE EMPLOYÉ (ADMIN SEULEMENT)
+// ------------------------------------------------------------------
 exports.createEmployeeAccount = onCall(async (request) => {
-
-  // VÉRIFICATION DE SÉCURITÉ
   const auth = request.auth;
+
+  // 1. Vérifier que l'utilisateur est connecté
   if (!auth) {
-    // L'utilisateur n'est pas connecté.
     throw new HttpsError("unauthenticated", "Vous devez être connecté.");
   }
 
-  // Vérification du rôle de l'utilisateur.
-  if (auth.token.role !== "admin") {
-    // L'utilisateur est connecté, mais n'est pas un admin.
+  // 2. VÉRIFICATION DU RÔLE VIA FIRESTORE
+  const db = getFirestore();
+  const adminDoc = await db.collection("Utilisateur").doc(auth.uid).get();
+
+  if (!adminDoc.exists || adminDoc.data().role_id !== 1) {
     throw new HttpsError(
-        "permission-denied",
-        "Vous n'avez pas les droits pour faire ça.",
+      "permission-denied",
+      "Accès refusé. Vous n'êtes pas administrateur."
     );
   }
 
-  // L'UTILISATEUR EST BIEN UN ADMIN. ON PEUT CONTINUER.
-  const {email, password} = request.data;
+  // 3. RÉCUPÉRATION DES DONNÉES
+  const { email, password, nom, prenom } = request.data;
+
+  // Validation supplémentaire
+  if (!nom || !prenom) {
+    throw new HttpsError("invalid-argument", "Le nom et le prénom sont requis.");
+  }
 
   try {
     // Étape A : Créer l'utilisateur dans Firebase Authentication
     const userRecord = await getAuth().createUser({
       email: email,
       password: password,
+      displayName: `${prenom} ${nom}`,
     });
 
     // Étape B : Marquer cet utilisateur comme "employe"
-    await getAuth().setCustomUserClaims(userRecord.uid, {role: "employe"});
+    await getAuth().setCustomUserClaims(userRecord.uid, { role: "employe" });
 
-    // Étape C : Créer son document dans Firestore
-    const db = getFirestore();
+    // Étape C : Créer son document dans Firestore AVEC LES VRAIES INFOS
     const userDocRef = db.collection("Utilisateur").doc(userRecord.uid);
     await userDocRef.set({
       uid: userRecord.uid,
       email: email,
-      role_id: 2,
+      role_id: 2, // 2 = Employé
       est_actif: true,
-      nom: "Employé", // L'admin pourra le changer plus tard
-      prenom: "Nouveau",
+      nom: nom,
+      prenom: prenom,
     });
 
     return {
       status: "success",
-      message: `Compte employé créé avec succès pour ${email}`,
+      message: `Compte employé créé pour ${prenom} ${nom}`,
     };
   } catch (error) {
-    // Gérer les erreurs (ex: email déjà pris)
     console.error("Erreur Cloud Function:", error);
     throw new HttpsError("internal", error.message);
   }
 });
 
 // ------------------------------------------------------------------
-// Désactiver un compte employé
+// DÉSACTIVER UN COMPTE EMPLOYÉ (ADMIN SEULEMENT)
 // ------------------------------------------------------------------
 exports.disableEmployeeAccount = onCall(async (request) => {
-  // Vérification de sécurité (Admin seulement)
   const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Vous devez être connecté.");
   }
-  if (auth.token.role !== "admin") {
+
+  // VÉRIFICATION DU RÔLE VIA FIRESTORE
+  const db = getFirestore();
+  const adminDoc = await db.collection("Utilisateur").doc(auth.uid).get();
+
+  if (!adminDoc.exists || adminDoc.data().role_id !== 1) {
     throw new HttpsError(
-        "permission-denied",
-        "Vous n'avez pas les droits pour faire ça.",
+      "permission-denied",
+      "Accès refusé. Vous n'êtes pas administrateur."
     );
   }
 
-  // On récupère l'ID de l'employé à désactiver
-  const {uid} = request.data;
+  const { uid } = request.data;
   if (!uid) {
     throw new HttpsError("invalid-argument", "L'UID est manquant.");
   }
 
   try {
-    // Étape A : Désactiver le compte
+    // Étape A : Désactiver le compte dans Auth
     await getAuth().updateUser(uid, {
       disabled: true,
     });
 
-    // Étape B : Mettre à jour notre base de données
-    const db = getFirestore();
+    // Étape B : Mettre à jour notre base de données Firestore
     const userDocRef = db.collection("Utilisateur").doc(uid);
     await userDocRef.update({
       est_actif: false,
     });
 
-    // 3. Renvoyer un message de succès
     return {
       status: "success",
       message: `Compte employé ${uid} désactivé avec succès.`,
@@ -109,48 +126,85 @@ exports.disableEmployeeAccount = onCall(async (request) => {
 });
 
 // ------------------------------------------------------------------
-// FONCTION 3 : TRAITER LE FORMULAIRE DE CONTACT
+// RÉACTIVER UN COMPTE EMPLOYÉ (ADMIN SEULEMENT)
+// ------------------------------------------------------------------
+exports.reactivateEmployeeAccount = onCall(async (request) => {
+  const auth = request.auth;
+  if (!auth) throw new HttpsError("unauthenticated", "Non connecté.");
+
+  const db = getFirestore();
+  const adminDoc = await db.collection("Utilisateur").doc(auth.uid).get();
+  if (!adminDoc.exists || adminDoc.data().role_id !== 1) {
+    throw new HttpsError("permission-denied", "Réservé aux admins.");
+  }
+
+  const { uid } = request.data;
+
+  try {
+    // 1. Réactiver dans Auth
+    await getAuth().updateUser(uid, { disabled: false });
+    // 2. Mettre à jour Firestore
+    await db.collection("Utilisateur").doc(uid).update({ est_actif: true });
+
+    return { status: "success", message: "Compte réactivé." };
+  } catch (error) {
+    throw new HttpsError("internal", error.message);
+  }
+});
+
+// ------------------------------------------------------------------
+// SUPPRIMER DÉFINITIVEMENT UN COMPTE EMPLOYÉ (ADMIN SEULEMENT)
+// ------------------------------------------------------------------
+exports.deleteEmployeeAccount = onCall(async (request) => {
+  const auth = request.auth;
+  if (!auth) throw new HttpsError("unauthenticated", "Non connecté.");
+
+  const db = getFirestore();
+  const adminDoc = await db.collection("Utilisateur").doc(auth.uid).get();
+  if (!adminDoc.exists || adminDoc.data().role_id !== 1) {
+    throw new HttpsError("permission-denied", "Réservé aux admins.");
+  }
+
+  const { uid } = request.data;
+
+  try {
+    // 1. Supprimer de Auth
+    await getAuth().deleteUser(uid);
+    // 2. Supprimer de Firestore
+    await db.collection("Utilisateur").doc(uid).delete();
+
+    return { status: "success", message: "Compte supprimé définitivement." };
+  } catch (error) {
+    throw new HttpsError("internal", error.message);
+  }
+});
+
+// ------------------------------------------------------------------
+// TRAITER LE FORMULAIRE DE CONTACT
 // ------------------------------------------------------------------
 exports.processContactForm = onCall(async (request) => {
-  // On vérifie que la requête contient bien les données nécessaires
   const { titre, email, description } = request.data;
   if (!titre || !email || !description) {
     throw new HttpsError("invalid-argument", "Champs requis manquants.");
   }
-  
-  // Créer le transporteur Nodemailer
-  const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-          user: "contact.viteetgourmand@gmail.com", // Adresse pour l'envoi
-          pass: "gitjacluzqmslxtz"
-      }
-  });
 
-  // Définir le contenu de l'e-mail
   const mailOptions = {
-      from: "contact.viteetgourmand@gmail.com",
-      to: "contact.viteetgourmand@gmail.com", // L'adresse de l'entreprise qui reçoit
-      subject: `[Vite & Gourmand] Nouvelle demande : ${titre}`,
-      html: `
-          <p>Vous avez reçu une nouvelle demande de contact via le site web.</p>
-          <p><strong>De la part de :</strong> ${email}</p>
-          <p><strong>Objet :</strong> ${titre}</p>
-          <hr>
-          <p><strong>Message :</strong></p>
-          <p>${description}</p>
-      `,
+    from: "contact.viteetgourmand@gmail.com",
+    to: "contact.viteetgourmand@gmail.com",
+    subject: `[Vite & Gourmand] Nouvelle demande : ${titre}`,
+    html: `
+      <p>Vous avez reçu une nouvelle demande de contact via le site web.</p>
+      <p><strong>De la part de :</strong> ${email}</p>
+      <p><strong>Objet :</strong> ${titre}</p>
+      <hr>
+      <p><strong>Message :</strong></p>
+      <p>${description}</p>
+    `,
   };
 
   try {
-    // Envoyer l'e-mail
     await transporter.sendMail(mailOptions);
-    console.log("E-mail de contact envoyé avec succès à l'entreprise.");
-    
-    return {
-      status: "success",
-      message: "Message envoyé.",
-    };
+    return { status: "success", message: "Message envoyé." };
   } catch (error) {
     console.error("Erreur Nodemailer lors de l'envoi :", error);
     throw new HttpsError("internal", "Échec de l'envoi du message.");
@@ -158,131 +212,172 @@ exports.processContactForm = onCall(async (request) => {
 });
 
 // ------------------------------------------------------------------
-// FONCTION 4 : VÉRIFIER LES MISES À JOUR DE STATUT DES COMMANDES
+// VÉRIFIER LES MISES À JOUR DE STATUT DES COMMANDES
 // ------------------------------------------------------------------
 exports.checkOrderStatusUpdate = require("firebase-functions/v1/firestore")
-    .document("Commande/{commandeId}")
-    .onUpdate(async (change, context) => {
-        
-        const newStatus = change.after.data().statut;
-        const previousStatus = change.before.data().statut;
-        const orderData = change.after.data();
-        const fullOrderId = context.params.commandeId;
+  .document("Commande/{commandeId}")
+  .onUpdate(async (change, context) => {
 
-        // --- FORMATTER L'ID (8 derniers caractères) ---
-        const orderIdShort = fullOrderId.slice(-8).toUpperCase();
-        
-        // --- ENVOYEUR SMTP ---
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: "contact.viteetgourmand@gmail.com",
-                pass: "gitjacluzqmslxtz" 
-            }
+    const newStatus = change.after.data().statut;
+    const previousStatus = change.before.data().statut;
+    const orderData = change.after.data();
+    const fullOrderId = context.params.commandeId;
+
+    const orderIdShort = fullOrderId.slice(-8).toUpperCase();
+    if (newStatus === previousStatus) {
+      return null;
+    }
+
+    const clientEmail = orderData.email;
+    const emailsToSend = [];
+
+    // --- 1. Statut: VALIDÉ ---
+    if (newStatus === "validé") {
+      emailsToSend.push({
+        subject: `Confirmation de Commande #${orderIdShort}`,
+        html: `
+            <p>Bonjour,</p>
+            <p>Nous avons bien reçu et validé votre commande #${orderIdShort} (${orderData.nom_menu}).</p>
+            <p>Elle est maintenant transmise à l'équipe de production.</p>
+        `
+      });
+    }
+
+    // --- 2. Statut: EN COURS DE LIVRAISON ---
+    else if (newStatus === "en cours de livraison") {
+      emailsToSend.push({
+        subject: `Votre commande est en route ! Commande #${orderIdShort}`,
+        html: `
+            <p>Bonjour,</p>
+            <p>Votre commande #${orderIdShort} (${orderData.nom_menu}) est actuellement en cours de livraison.</p>
+            <p>Notre équipe logistique arrive chez vous à l'heure convenue (${orderData.heure_livraison}).</p>
+        `
+      });
+    }
+
+    // --- 3. Statut: LIVRÉ ---
+    else if (newStatus === "livré") {
+      emailsToSend.push({
+        subject: `Commande #${orderIdShort} livrée`,
+        html: `
+            <p>Bonjour,</p>
+            <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
+            <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
+        `
+      });
+    }
+
+    // --- 4. Statut: MATÉRIEL EN ATTENTE ---
+    else if (newStatus === "en attente du retour de matériel") {
+      // Email A
+      emailsToSend.push({
+        subject: `Votre commande #${orderIdShort} a bien été livrée`,
+        html: `
+            <p>Bonjour,</p>
+            <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
+            <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
+        `
+      });
+
+      // Email B
+      emailsToSend.push({
+        subject: `⚠️ URGENT : Rappel de restitution de matériel - Commande #${orderIdShort}`,
+        html: `
+            <p>Bonjour,</p>
+            <p>Votre commande #${orderIdShort} a bien été livrée.</p>
+            <p>Veuillez noter que le matériel doit être restitué dans les 10 jours ouvrés.</p>
+            <p style="color: #CC0000; font-weight: bold;">Passé ce délai, une pénalité forfaitaire de 600€ sera appliquée (voir CGV).</p>
+            <p>Merci de nous contacter rapidement pour convenir du retour.</p>
+        `
+      });
+    }
+
+    // --- 5. Statut: TERMINÉE ---
+    else if (newStatus === "terminée" && previousStatus !== "terminée") {
+
+      // CAS SPÉCIAL : Saut direct de "en cours" à "terminée"
+      if (previousStatus === "en cours de livraison") {
+        emailsToSend.push({
+          subject: `Votre commande #${orderIdShort} a bien été livrée`,
+          html: `
+              <p>Bonjour,</p>
+              <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
+              <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
+          `
         });
+      }
 
-        // Sortir si le statut n'a pas changé
-        if (newStatus === previousStatus) {
-            return null;
-        }
+      // Invitation à l'avis
+      emailsToSend.push({
+        subject: `⭐ Votre avis compte ! Commande #${orderIdShort} finalisée`,
+        html: `
+            <p>Bonjour,</p>
+            <p>Votre commande #${orderIdShort} est maintenant clôturée.</p>
+            <p>Votre avis nous est précieux. Connectez-vous à votre espace personnel pour laisser une note et un commentaire !</p>
+            <p>Lien vers votre profil : [Ajouter ici l'URL de la page Profil]</p>
+        `
+      });
+    }
 
-        const clientEmail = orderData.email;
-        const emailsToSend = [];
+    // --- ENVOI FINAL ---
+    if (clientEmail && emailsToSend.length > 0) {
+      const sendPromises = emailsToSend.map(emailData => {
+        return transporter.sendMail({
+          from: "contact.viteetgourmand@gmail.com",
+          to: clientEmail,
+          subject: emailData.subject,
+          html: emailData.html,
+        });
+      });
 
-        // -----------------------------------------------------------
-        // LOGIQUE D'ENVOI D'EMAILS PAR STATUT
-        // -----------------------------------------------------------
+      await Promise.all(sendPromises);
+      console.log(`${emailsToSend.length} email(s) envoyé(s) à ${clientEmail}`);
+    }
 
-        // --- 1. Statut: VALIDÉ ---
-        if (newStatus === "validé") {
-            emailsToSend.push({
-                subject: `Confirmation de Commande #${orderIdShort}`,
-                html: `
-                    <p>Bonjour,</p>
-                    <p>Nous avons bien reçu et validé votre commande #${orderIdShort} (${orderData.nom_menu}).</p>
-                    <p>Elle est maintenant transmise à l'équipe de production.</p>
-                `
-            });
-        } 
-        
-        // --- 2. Statut: EN COURS DE LIVRAISON ---
-        else if (newStatus === "en cours de livraison") {
-            emailsToSend.push({
-                subject: `Votre commande est en route ! Commande #${orderIdShort}`,
-                html: `
-                    <p>Bonjour,</p>
-                    <p>Votre commande #${orderIdShort} (${orderData.nom_menu}) est actuellement en cours de livraison.</p>
-                    <p>Notre équipe logistique arrive chez vous à l'heure convenue (${orderData.heure_livraison}).</p>
-                `
-            });
-        } 
-        
-        // --- 3. Statut: MATÉRIEL EN ATTENTE (DOUBLE ENVOI) (Lors des commandes avec du  matériel) ---
-        else if (newStatus === "en attente du retour de matériel") {
-            // Email A : La confirmation de livraison
-            emailsToSend.push({
-                subject: `Votre commande #${orderIdShort} a bien été livrée`,
-                html: `
-                    <p>Bonjour,</p>
-                    <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
-                    <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
-                `
-            });
+    return null;
+  });
 
-            // Email B : L'avertissement de pénalité
-            emailsToSend.push({
-                subject: `⚠️ URGENT : Rappel de restitution de matériel - Commande #${orderIdShort}`,
-                html: `
-                    <p>Bonjour,</p>
-                    <p>Votre commande #${orderIdShort} a bien été livrée.</p>
-                    <p>Veuillez noter que le matériel doit être restitué dans les 10 jours ouvrés.</p>
-                    <p style="color: #CC0000; font-weight: bold;">Passé ce délai, une pénalité forfaitaire de 600€ sera appliquée (voir CGV).</p>
-                    <p>Merci de nous contacter rapidement pour convenir du retour.</p>
-                `
-            });
-        }
-        
-        // --- 4. Statut: TERMINÉE (Invitation à l'avis) ---
-        else if (newStatus === "terminée" && previousStatus !== "terminée") {
-            
-            // CAS SPÉCIAL : Si on passe directement de "EN COURS DE LIVRAISON" à "terminée" (Lors des commandes sans matériel)
-            if (previousStatus === "en cours de livraison") {
-                 emailsToSend.push({
-                    subject: `Votre commande #${orderIdShort} a bien été livrée`,
-                    html: `
-                        <p>Bonjour,</p>
-                        <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
-                        <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
-                    `
-                });
-            }
+// ------------------------------------------------------------------
+// ENVOYER UN EMAIL DE BIENVENUE (DÈS LA CRÉATION DU COMPTE)
+// ------------------------------------------------------------------
+exports.sendWelcomeEmail = require("firebase-functions/v1").auth.user().onCreate(async (user) => {
+  const email = user.email;
+  const displayName = user.displayName || "Cher client";
 
-            // Invitation à l'avis (Envoyé dans tous les cas quand c'est fini)
-            emailsToSend.push({
-                subject: `⭐ Votre avis compte ! Commande #${orderIdShort} finalisée`,
-                html: `
-                    <p>Bonjour,</p>
-                    <p>Votre commande #${orderIdShort} est maintenant cloturée.</p>
-                    <p>Votre avis nous est précieux. Connectez-vous à votre espace personnel pour laisser une note et un commentaire !</p>
-                    <p>Lien vers votre profil : [Ajouter ici l'URL de la page Profil]</p>
-                `
-            });
-        }
+  const mailOptions = {
+    from: "contact.viteetgourmand@gmail.com",
+    to: email,
+    subject: "Bienvenue chez Vite & Gourmand ! 🥗",
+    html: `
+        <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
+            <h2>Bienvenue parmi nous, ${displayName} !</h2>
+            <p>Nous sommes ravis de vous compter parmi nos nouveaux clients.</p>
+            <p>Chez <strong>Vite & Gourmand</strong>, notre mission est de vous régaler avec des repas frais, 
+            préparés avec soin et livrés avec le sourire.</p>
+            <p>Dès maintenant, vous pouvez :</p>
+            <ul>
+                <li>Consulter nos menus de saison.</li>
+                <li>Passer votre première commande en quelques clics.</li>
+                <li>Nous contacter pour une demande spéciale.</li>
+            </ul>
+            <p>Pour commencer, rendez-vous sur votre espace personnel : 
+               <a href="https://votre-site-web.com/login" style="color: #27ae60; font-weight: bold;">Me connecter</a>
+            </p>
+            <hr style="border: none; border-top: 1px solid #eee;">
+            <p style="font-size: 0.9em; color: #777;">
+                À très vite pour votre première dégustation !<br>
+                L'équipe Vite & Gourmand
+            </p>
+        </div>
+    `
+  };
 
-        // --- ENVOI FINAL ---
-        if (clientEmail && emailsToSend.length > 0) {
-            const sendPromises = emailsToSend.map(emailData => {
-                return transporter.sendMail({
-                    from: "contact.viteetgourmand@gmail.com",
-                    to: clientEmail,
-                    subject: emailData.subject,
-                    html: emailData.html,
-                });
-            });
-            
-            await Promise.all(sendPromises);
-            console.log(`${emailsToSend.length} email(s) envoyé(s) à ${clientEmail}`);
-        }
-
-        return null;
-    });
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Email de bienvenue envoyé avec succès à : ${email}`);
+    return null;
+  } catch (error) {
+    console.error("Erreur lors de l'envoi de l'email de bienvenue :", error);
+    return null;
+  }
+});
