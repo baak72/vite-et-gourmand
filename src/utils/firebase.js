@@ -26,7 +26,7 @@ export const db = getFirestore(app); // Pour notre base NoSQL
 export const functions = getFunctions(app); // Pour les fonctions Cloud
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc, where, orderBy } from "firebase/firestore"; 
+import { doc, setDoc, collection, getDocs, getDoc, query, addDoc, serverTimestamp, updateDoc, where, orderBy, deleteDoc } from "firebase/firestore"; 
 
 // --- FONCTIONS BACK-END ---
 /**
@@ -538,6 +538,65 @@ export const addReview = async (reviewData) => {
     console.log("Avis envoyé pour modération.");
   } catch (error) {
     console.error("Erreur lors de l'envoi de l'avis :", error.message);
+    throw error;
+  }
+};
+
+// --- GESTION DES MENUS ---
+
+/**
+ * Ajoute un nouveau menu (Admin seulement).
+ * @param {object} menuData 
+ */
+export const addMenu = async (menuData) => {
+  try {
+    const menusRef = collection(db, "Menu");
+    
+    await addDoc(menusRef, {
+      ...menuData,
+      prix_par_personne: parseFloat(menuData.prix_par_personne),
+      nombre_personne_minimum: parseInt(menuData.nombre_personne_minimum, 10),
+      date_creation: serverTimestamp()
+    });
+    console.log("Menu ajouté avec succès");
+  } catch (error) {
+    console.error("Erreur addMenu:", error);
+    throw error;
+  }
+};
+
+/**
+ * Modifie un menu existant (Admin & Employés).
+ * @param {string} menuId 
+ * @param {object} menuData 
+ */
+export const updateMenu = async (menuId, menuData) => {
+  try {
+    const menuRef = doc(db, "Menu", menuId);
+    
+    await updateDoc(menuRef, {
+      ...menuData,
+      prix_par_personne: parseFloat(menuData.prix_par_personne),
+      nombre_personne_minimum: parseInt(menuData.nombre_personne_minimum, 10)
+    });
+    console.log("Menu modifié :", menuId);
+  } catch (error) {
+    console.error("Erreur updateMenu:", error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime un menu (Admin & Employés).
+ * @param {string} menuId 
+ */
+export const deleteMenu = async (menuId) => {
+  try {
+    const menuRef = doc(db, "Menu", menuId);
+    await deleteDoc(menuRef);
+    console.log("Menu supprimé :", menuId);
+  } catch (error) {
+    console.error("Erreur deleteMenu:", error);
     throw error;
   }
 };

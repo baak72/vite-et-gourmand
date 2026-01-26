@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const PrefooterSection = () => {
   return (
-    <section className="relative py-32 bg-white overflow-hidden">
+    <section className="relative py-48 bg-white overflow-hidden">
 
       {/* --- FOND VIVANT --- */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-100/60 rounded-full blur-[120px] pointer-events-none opacity-80 mix-blend-multiply"></div>
@@ -19,7 +19,7 @@ const PrefooterSection = () => {
             Créons <span className="italic font-light text-amber-600">l'inoubliable.</span>
           </h2>
 
-          <p className="text-zinc-500 text-lg md:text-xl font-light max-w-2xl mx-auto mb-12 leading-relaxed">
+          <p className="text-zinc-600 text-lg md:text-xl font-light max-w-2xl mx-auto mb-12 leading-relaxed">
             Votre événement mérite une signature culinaire unique.
             Parlons de vos envies, sans engagement.
           </p>
@@ -37,11 +37,11 @@ const PrefooterSection = () => {
             </Link>
 
             {/* Séparateur visuel */}
-            <span className="hidden sm:block w-1 h-1 bg-zinc-300 rounded-full"></span>
+            <span className="hidden sm:block w-1 h-1 bg-zinc-600 rounded-full"></span>
 
             <Link
               to="/menus"
-              className="text-zinc-400 hover:text-zinc-600 transition-colors text-sm uppercase tracking-widest font-medium"
+              className="text-zinc-500 hover:text-zinc-900 transition-colors text-sm uppercase tracking-widest font-medium"
             >
               Voir les menus
             </Link>
