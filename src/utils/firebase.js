@@ -520,28 +520,6 @@ export const cancelOrder = async (orderId) => {
   }
 };
 
-/**
- * Crée un avis client.
- * @param {object} reviewData - Données de l'avis (note, description, user info, orderId).
- */
-export const addReview = async (reviewData) => {
-  try {
-    const reviewsCollectionRef = collection(db, "Avis");
-    
-    const dataToSave = {
-      ...reviewData,
-      statut: "en attente", // IMPORTANT : Doit être validé par un employé
-      date_creation: serverTimestamp()
-    };
-
-    await addDoc(reviewsCollectionRef, dataToSave);
-    console.log("Avis envoyé pour modération.");
-  } catch (error) {
-    console.error("Erreur lors de l'envoi de l'avis :", error.message);
-    throw error;
-  }
-};
-
 // --- GESTION DES MENUS ---
 
 /**
@@ -598,5 +576,87 @@ export const deleteMenu = async (menuId) => {
   } catch (error) {
     console.error("Erreur deleteMenu:", error);
     throw error;
+  }
+};
+
+// --- GESTION DES AVIS (MODÉRATION) ---
+
+/**
+ * Crée un avis client.
+ * @param {object} reviewData - Données de l'avis (note, description, user info, orderId).
+ */
+export const addReview = async (reviewData) => {
+  try {
+    const reviewsCollectionRef = collection(db, "Avis");
+    
+    const dataToSave = {
+      ...reviewData,
+      statut: "en attente", // IMPORTANT : Doit être validé par un employé
+      date_creation: serverTimestamp()
+    };
+
+    await addDoc(reviewsCollectionRef, dataToSave);
+    console.log("Avis envoyé pour modération.");
+  } catch (error) {
+    console.error("Erreur lors de l'envoi de l'avis :", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Récupère tous les avis en attente de validation.
+ */
+export const getPendingReviews = async () => {
+  try {
+    const reviewsRef = collection(db, "Avis");
+    const q = query(reviewsRef, where("statut", "==", "en attente"), orderBy("date_creation", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Erreur getPendingReviews:", error);
+    throw error;
+  }
+};
+
+/**
+ * Valide un avis (passe le statut à "valide").
+ */
+export const validateReview = async (reviewId) => {
+  try {
+    const reviewRef = doc(db, "Avis", reviewId);
+    await updateDoc(reviewRef, { statut: "valide" });
+    console.log("Avis validé :", reviewId);
+  } catch (error) {
+    console.error("Erreur validateReview:", error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime un avis lors d'une non validation.
+ */
+export const deleteReview = async (reviewId) => {
+  try {
+    const reviewRef = doc(db, "Avis", reviewId);
+    await deleteDoc(reviewRef);
+    console.log("Avis supprimé :", reviewId);
+  } catch (error) {
+    console.error("Erreur deleteReview:", error);
+    throw error;
+  }
+};
+
+/**
+ * Compte le nombre total d'avis validés (pour le compteur public).
+ */
+export const getReviewsCount = async () => {
+  try {
+    const reviewsRef = collection(db, "Avis");
+    const q = query(reviewsRef, where("statut", "==", "valide"));
+    const snapshot = await getDocs(q);
+    return snapshot.size;
+  } catch (error) {
+    console.error("Erreur getReviewsCount:", error);
+    return 0;
   }
 };

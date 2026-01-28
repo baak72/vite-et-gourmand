@@ -37,18 +37,20 @@ const PartnersCarousel = () => {
       
       {/* --- FOND VIVANT --- */}
       <div className="absolute inset-0 opacity-[0.4] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] contrast-100 brightness-100"></div>
-      <div className="relative z-10 w-[80%] mx-auto">
+      
+      <div className="relative z-10 w-[90%] md:w-[80%] mx-auto">
         <Marquee 
           gradient={true} 
           gradientColor={[255, 255, 255]} 
-          speed={40} 
+          speed={30} 
+          pauseOnHover={false}
         >
           {partnersLogos.map((partner) => (
-              <div key={partner.id} className="mx-8 md:mx-12">
+              <div key={partner.id} className="mx-8 md:mx-12 py-4">
                   <img 
-                      src={partner.src} 
-                      alt={partner.alt} 
-                      className="h-10 w-auto object-contain" 
+                    src={partner.src} 
+                    alt={partner.alt} 
+                    className="h-10 w-auto object-contain transition-all duration-300 filter grayscale opacity-50 hover:grayscale-0 hover:opacity-100 hover:scale-110 cursor-pointer" 
                   />
               </div>
           ))}

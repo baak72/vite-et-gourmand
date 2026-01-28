@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Truck, CheckCircle2, AlertCircle, Clock, ChefHat, RotateCcw, Search, MessageSquare, Menu as MenuIcon, ClipboardList } from 'lucide-react';
+import { Package, Truck, CheckCircle2, AlertCircle, Clock, ChefHat, RotateCcw, Search, MessageSquare, Menu as MenuIcon, ClipboardList, Star } from 'lucide-react';
 import { getAllOrders, updateOrderStatus } from '../utils/firebase';
-import AdminMenusTab from "../components/AdminMenusTab"; // Assure-toi que le chemin est bon
+import AdminMenusTab from "../components/AdminMenusTab";
+import AdminReviewsTab from "../components/AdminReviewsTab";
 
 const EmployeeDashboardView = () => {
   const [activeTab, setActiveTab] = useState('orders');
@@ -37,7 +38,7 @@ const EmployeeDashboardView = () => {
     }
   };
 
-  // Helpers (inchangés)
+
   const getStatusStyle = (status) => {
     const baseStyle = "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 w-fit";
     switch (status) {
@@ -72,12 +73,15 @@ const EmployeeDashboardView = () => {
           <h2 className="text-amber-500 font-bold tracking-widest uppercase mb-2 text-sm">Administration</h2>
           <h1 className="font-playfair text-3xl md:text-4xl font-bold text-white mb-6">Tableau de Bord</h1>
           
-          <div className="flex gap-6 border-b border-white/10">
-            <button onClick={() => setActiveTab('orders')} className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider flex items-center gap-2 transition-all border-b-2 ${activeTab === 'orders' ? 'border-amber-500 text-amber-500' : 'border-transparent text-zinc-500 hover:text-white'}`}>
+          <div className="flex gap-6 border-b border-white/10 overflow-x-auto">
+            <button onClick={() => setActiveTab('orders')} className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider flex items-center gap-2 transition-all border-b-2 whitespace-nowrap ${activeTab === 'orders' ? 'border-amber-500 text-amber-500' : 'border-transparent text-zinc-500 hover:text-white'}`}>
               <ClipboardList className="w-4 h-4" /> Suivi Commandes
             </button>
-            <button onClick={() => setActiveTab('menus')} className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider flex items-center gap-2 transition-all border-b-2 ${activeTab === 'menus' ? 'border-amber-500 text-amber-500' : 'border-transparent text-zinc-500 hover:text-white'}`}>
+            <button onClick={() => setActiveTab('menus')} className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider flex items-center gap-2 transition-all border-b-2 whitespace-nowrap ${activeTab === 'menus' ? 'border-amber-500 text-amber-500' : 'border-transparent text-zinc-500 hover:text-white'}`}>
               <MenuIcon className="w-4 h-4" /> Gestion Carte
+            </button>
+            <button onClick={() => setActiveTab('reviews')} className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider flex items-center gap-2 transition-all border-b-2 whitespace-nowrap ${activeTab === 'reviews' ? 'border-amber-500 text-amber-500' : 'border-transparent text-zinc-500 hover:text-white'}`}>
+              <Star className="w-4 h-4" /> Avis Clients
             </button>
           </div>
         </div>
@@ -138,7 +142,6 @@ const EmployeeDashboardView = () => {
                             <span className={getStatusStyle(order.statut)}>{getStatusIcon(order.statut)} {order.statut}</span>
                           </td>
                           <td className="px-6 py-4 align-top flex flex-col gap-2 min-w-[200px]">
-                            {/* Actions dynamiques (inchangées) */}
                             {order.statut === 'en attente' && <button onClick={() => handleStatusChange(order.id, 'validé')} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2">Valider</button>}
                             {order.statut === 'validé' && <button onClick={() => handleStatusChange(order.id, 'en préparation')} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2">Préparer</button>}
                             {order.statut === 'en préparation' && <button onClick={() => handleStatusChange(order.id, 'en cours de livraison')} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2">Livrer</button>}
@@ -158,10 +161,17 @@ const EmployeeDashboardView = () => {
           </div>
         )}
 
-        {/* 2. ONGLET MENUS */}
+        {/* ONGLET MENUS */}
         {activeTab === 'menus' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <AdminMenusTab />
+          </div>
+        )}
+
+        {/* ONGLET AVIS */}
+        {activeTab === 'reviews' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <AdminReviewsTab />
           </div>
         )}
 
