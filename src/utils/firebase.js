@@ -660,3 +660,19 @@ export const getReviewsCount = async () => {
     return 0;
   }
 };
+
+/**
+ * Appelle la Cloud Function pour refuser et supprimer une commande.
+ * @param {string} orderId - L'ID de la commande.
+ * @param {string} reason - Le motif du refus.
+ */
+export const refuseOrder = async (orderId, reason) => {
+  try {
+    const fn = httpsCallable(functions, 'refuseOrder');
+    const result = await fn({ orderId, reason });
+    return result.data;
+  } catch (error) {
+    console.error("Erreur Cloud Function (refuseOrder) :", error.message);
+    throw error;
+  }
+};

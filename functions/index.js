@@ -381,3 +381,74 @@ exports.sendWelcomeEmail = require("firebase-functions/v1").auth.user().onCreate
     return null;
   }
 });
+
+// ------------------------------------------------------------------
+// REFUSER ET SUPPRIMER UNE COMMANDE (ADMIN/STAFF)
+// ------------------------------------------------------------------
+exports.refuseOrder = onCall(async (request) => {
+  const auth = request.auth;
+  // 1. Vérification sécurité (Connecté ?)
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Vous devez être connecté.");
+  }
+
+  const db = getFirestore();
+  
+  // 2. Vérification Rôle (Admin ou Employé ?)
+  const userDoc = await db.collection("Utilisateur").doc(auth.uid).get();
+  if (!userDoc.exists || (userDoc.data().role_id !== 1 && userDoc.data().role_id !== 2)) {
+    throw new HttpsError("permission-denied", "Droits insuffisants.");
+  }
+
+  const { orderId, reason } = request.data;
+  if (!orderId || !reason) {
+    throw new HttpsError("invalid-argument", "ID de commande ou motif manquant.");
+  }
+
+  try {
+    const orderRef = db.collection("Commande").doc(orderId);
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      throw new HttpsError("not-found", "Commande introuvable.");
+    }
+
+    const orderData = orderSnap.data();
+    const clientEmail = orderData.email;
+    const orderIdShort = orderId.slice(-8).toUpperCase();
+
+    // 3. Envoyer l'email de refus
+    if (clientEmail) {
+      await transporter.sendMail({
+        from: "contact.viteetgourmand@gmail.com",
+        to: clientEmail,
+        subject: `Mise à jour concernant votre commande #${orderIdShort}`,
+        html: `
+            <div style="font-family: sans-serif; color: #333;">
+                <h2 style="color: #c0392b;">Commande Refusée</h2>
+                <p>Bonjour ${orderData.prenom || ""},</p>
+                <p>Nous sommes au regret de vous informer que nous ne pouvons pas honorer votre commande <strong>#${orderIdShort}</strong> (${orderData.nom_menu}).</p>
+                <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+                <p><strong>Motif du refus :</strong></p>
+                <p style="background-color: #fceceb; padding: 15px; border-left: 4px solid #c0392b; font-style: italic;">
+                    "${reason}"
+                </p>
+                <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+                <p>Cette commande a été annulée et ne vous sera pas facturée (ou sera remboursée si déjà payée).</p>
+                <p>Nous nous excusons pour la gêne occasionnée et espérons vous revoir bientôt.</p>
+                <p>L'équipe Vite & Gourmand</p>
+            </div>
+        `
+      });
+    }
+
+    // 4. Supprimer la commande définitivement
+    await orderRef.delete();
+
+    return { status: "success", message: "Commande refusée et supprimée." };
+
+  } catch (error) {
+    console.error("Erreur refuseOrder:", error);
+    throw new HttpsError("internal", error.message);
+  }
+});

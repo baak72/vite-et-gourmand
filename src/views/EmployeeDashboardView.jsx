@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Truck, CheckCircle2, AlertCircle, Clock, ChefHat, RotateCcw, Search, MessageSquare, Menu as MenuIcon, ClipboardList, Star } from 'lucide-react';
-import { getAllOrders, updateOrderStatus } from '../utils/firebase';
+// J'ai ajouté l'icône 'X' dans les imports
+import { Package, Truck, CheckCircle2, AlertCircle, Clock, ChefHat, RotateCcw, Search, MessageSquare, Menu as MenuIcon, ClipboardList, Star, X } from 'lucide-react';
+// J'ai ajouté 'refuseOrder' dans les imports
+import { getAllOrders, updateOrderStatus, refuseOrder } from '../utils/firebase';
 import AdminMenusTab from "../components/AdminMenusTab";
 import AdminReviewsTab from "../components/AdminReviewsTab";
 
@@ -10,6 +12,12 @@ const EmployeeDashboardView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [submitError, setSubmitError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // --- ÉTATS POUR LA MODALE DE REFUS ---
+  const [isRefuseModalOpen, setIsRefuseModalOpen] = useState(false);
+  const [orderToRefuse, setOrderToRefuse] = useState(null);
+  const [refusalReason, setRefusalReason] = useState("");
+  const [isRefusing, setIsRefusing] = useState(false);
 
   const fetchAllOrders = async (filter) => {
     setIsLoading(true);
@@ -38,6 +46,31 @@ const EmployeeDashboardView = () => {
     }
   };
 
+  // --- GESTION DU REFUS ---
+  const openRefuseModal = (order) => {
+    setOrderToRefuse(order);
+    setRefusalReason(""); // Reset du texte
+    setIsRefuseModalOpen(true);
+  };
+
+  const handleConfirmRefuse = async () => {
+    if (!refusalReason.trim()) return alert("Veuillez indiquer un motif.");
+    
+    setIsRefusing(true);
+    try {
+      await refuseOrder(orderToRefuse.id, refusalReason);
+      
+      // Fermer et rafraîchir
+      setIsRefuseModalOpen(false);
+      setOrderToRefuse(null);
+      fetchAllOrders(statusFilter);
+      
+    } catch (error) {
+      alert("Erreur lors du refus : " + error.message);
+    } finally {
+      setIsRefusing(false);
+    }
+  };
 
   const getStatusStyle = (status) => {
     const baseStyle = "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 w-fit";
@@ -65,7 +98,7 @@ const EmployeeDashboardView = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pt-36 pb-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-zinc-950 text-white pt-36 pb-12 px-4 sm:px-6 lg:px-8 relative">
       <div className="max-w-7xl mx-auto">
         
         {/* HEADER */}
@@ -142,7 +175,19 @@ const EmployeeDashboardView = () => {
                             <span className={getStatusStyle(order.statut)}>{getStatusIcon(order.statut)} {order.statut}</span>
                           </td>
                           <td className="px-6 py-4 align-top flex flex-col gap-2 min-w-[200px]">
-                            {order.statut === 'en attente' && <button onClick={() => handleStatusChange(order.id, 'validé')} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2">Valider</button>}
+                            
+                            {/* BOUTONS D'ACTION */}
+                            {order.statut === 'en attente' && (
+                                <div className="flex gap-2">
+                                    <button onClick={() => handleStatusChange(order.id, 'validé')} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2">
+                                        Valider
+                                    </button>
+                                    <button onClick={() => openRefuseModal(order)} className="flex-1 bg-red-600/20 border border-red-600/50 hover:bg-red-600 text-red-500 hover:text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors">
+                                        Refuser
+                                    </button>
+                                </div>
+                            )}
+
                             {order.statut === 'validé' && <button onClick={() => handleStatusChange(order.id, 'en préparation')} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2">Préparer</button>}
                             {order.statut === 'en préparation' && <button onClick={() => handleStatusChange(order.id, 'en cours de livraison')} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2">Livrer</button>}
                             {order.statut === 'en cours de livraison' && (order.pret_materiel ? 
@@ -176,6 +221,57 @@ const EmployeeDashboardView = () => {
         )}
 
       </div>
+
+      {/* --- MODALE DE REFUS --- */}
+      {isRefuseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-white">Refuser la commande</h3>
+                    <button onClick={() => setIsRefuseModalOpen(false)} className="text-zinc-500 hover:text-white">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                
+                <p className="text-zinc-400 text-sm mb-4">
+                    Attention, cette action est <strong>irréversible</strong>. La commande sera supprimée et un email sera envoyé au client.
+                </p>
+
+                <div className="mb-6">
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                        Motif du refus (Envoyé au client)
+                    </label>
+                    <textarea 
+                        value={refusalReason}
+                        onChange={(e) => setRefusalReason(e.target.value)}
+                        placeholder="Ex: Malheureusement, nous sommes complets pour ce créneau horaire..."
+                        className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl p-4 h-32 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all resize-none"
+                    />
+                </div>
+
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setIsRefuseModalOpen(false)}
+                        className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-bold hover:bg-zinc-800 transition-colors"
+                    >
+                        Annuler
+                    </button>
+                    <button 
+                        onClick={handleConfirmRefuse}
+                        disabled={isRefusing || !refusalReason.trim()}
+                        className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isRefusing ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            "Confirmer le refus"
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 };
