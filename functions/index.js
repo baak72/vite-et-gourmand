@@ -16,6 +16,59 @@ const transporter = nodemailer.createTransport({
 // 2. Initialiser l'Admin SDK
 initializeApp();
 
+// ==================================================================
+// FONCTION UTILITAIRE POUR LE DESIGN DES EMAILS
+// ==================================================================
+const getEmailTemplate = (title, bodyContent) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background-color: #18181b; padding: 30px 20px; text-align: center; }
+        .logo { color: #f59e0b; font-size: 24px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; text-decoration: none; }
+        .content { padding: 40px 30px; color: #333333; line-height: 1.6; font-size: 16px; }
+        .btn { display: inline-block; background-color: #f59e0b; color: #000000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; }
+        .footer { background-color: #f4f4f5; padding: 20px; text-align: center; font-size: 12px; color: #71717a; border-top: 1px solid #e4e4e7; }
+        .footer a { color: #71717a; text-decoration: none; margin: 0 5px; }
+        .footer a:hover { color: #f59e0b; }
+        h2 { color: #18181b; margin-top: 0; }
+        .status-badge { background-color: #fffbeb; color: #d97706; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.9em; border: 1px solid #fcd34d; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <a href="https://vite-et-gourmand.web.app/" class="logo">Vite & Gourmand</a>
+        </div>
+        
+        <div class="content">
+          <h2>${title}</h2>
+          ${bodyContent}
+        </div>
+
+        <div class="footer">
+          <p>
+            <a href="https://vite-et-gourmand.web.app/menus">Nos Menus</a> • 
+            <a href="https://vite-et-gourmand.web.app/contact">Contact</a> • 
+            <a href="https://vite-et-gourmand.web.app/login">Mon Compte</a>
+          </p>
+          <p>
+            <a href="https://vite-et-gourmand.web.app/cgv">CGV</a> • 
+            <a href="https://vite-et-gourmand.web.app/mentions-legales">Mentions Légales</a>
+          </p>
+          <p>© ${new Date().getFullYear()} Vite & Gourmand. Tous droits réservés.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+
 // ------------------------------------------------------------------
 // FONCTION 1 : CRÉER UN COMPTE EMPLOYÉ (ADMIN SEULEMENT)
 // ------------------------------------------------------------------
@@ -188,18 +241,22 @@ exports.processContactForm = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Champs requis manquants.");
   }
 
+  const emailBody = `
+    <p>Vous avez reçu une nouvelle demande de contact via le site web.</p>
+    <div style="background-color: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+      <p><strong>De la part de :</strong> <a href="mailto:${email}" style="color: #f59e0b;">${email}</a></p>
+      <p><strong>Objet :</strong> ${titre}</p>
+      <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+      <p><strong>Message :</strong></p>
+      <p style="white-space: pre-wrap;">${description}</p>
+    </div>
+  `;
+
   const mailOptions = {
     from: "contact.viteetgourmand@gmail.com",
     to: "contact.viteetgourmand@gmail.com",
-    subject: `[Vite & Gourmand] Nouvelle demande : ${titre}`,
-    html: `
-      <p>Vous avez reçu une nouvelle demande de contact via le site web.</p>
-      <p><strong>De la part de :</strong> ${email}</p>
-      <p><strong>Objet :</strong> ${titre}</p>
-      <hr>
-      <p><strong>Message :</strong></p>
-      <p>${description}</p>
-    `,
+    subject: `[Vite & Gourmand] Contact : ${titre}`,
+    html: getEmailTemplate("Nouvelle Demande de Contact", emailBody),
   };
 
   try {
@@ -233,62 +290,78 @@ exports.checkOrderStatusUpdate = require("firebase-functions/v1/firestore")
 
     // --- 1. Statut: VALIDÉ ---
     if (newStatus === "validé") {
+      const body = `
+        <p>Bonjour ${orderData.prenom || ""},</p>
+        <p>Bonne nouvelle ! Nous avons bien reçu et <strong>validé</strong> votre commande.</p>
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; color: #166534;"><strong>Commande #${orderIdShort}</strong></p>
+          <p style="margin: 5px 0 0 0; color: #166534;">Menu : ${orderData.nom_menu}</p>
+        </div>
+        <p>Elle est maintenant transmise à notre équipe de production qui va la préparer avec soin.</p>
+        <a href="https://vite-et-gourmand.web.app/login" class="btn">Suivre ma commande</a>
+      `;
       emailsToSend.push({
-        subject: `Confirmation de Commande #${orderIdShort}`,
-        html: `
-            <p>Bonjour,</p>
-            <p>Nous avons bien reçu et validé votre commande #${orderIdShort} (${orderData.nom_menu}).</p>
-            <p>Elle est maintenant transmise à l'équipe de production.</p>
-        `
+        subject: `Commande #${orderIdShort} Validée ✅`,
+        html: getEmailTemplate("Commande Validée", body)
       });
     }
 
     // --- 2. Statut: EN COURS DE LIVRAISON ---
     else if (newStatus === "en cours de livraison") {
+      const body = `
+        <p>Bonjour ${orderData.prenom || ""},</p>
+        <p>Votre commande est en route ! 🚚</p>
+        <p>Notre équipe logistique est partie et se dirige vers vous pour la livraison prévue à <strong>${orderData.heure_livraison}</strong>.</p>
+        <p>Merci de vous tenir prêt(e) pour la réception.</p>
+      `;
       emailsToSend.push({
-        subject: `Votre commande est en route ! Commande #${orderIdShort}`,
-        html: `
-            <p>Bonjour,</p>
-            <p>Votre commande #${orderIdShort} (${orderData.nom_menu}) est actuellement en cours de livraison.</p>
-            <p>Notre équipe logistique arrive chez vous à l'heure convenue (${orderData.heure_livraison}).</p>
-        `
+        subject: `En route ! Commande #${orderIdShort}`,
+        html: getEmailTemplate("Livraison en cours", body)
       });
     }
 
     // --- 3. Statut: LIVRÉ ---
     else if (newStatus === "livré") {
+      const body = `
+        <p>Bonjour ${orderData.prenom || ""},</p>
+        <p>Votre commande <strong>#${orderIdShort}</strong> a été livrée avec succès.</p>
+        <p>Merci de votre confiance. Cela nous fait vraiment plaisir de vous accompagner aujourd’hui.</p>
+        <p style="font-size: 1.1em; font-weight: bold; color: #f59e0b;">Nous vous souhaitons un excellent appétit ! 🍽️</p>
+      `;
       emailsToSend.push({
-        subject: `Commande #${orderIdShort} livrée`,
-        html: `
-            <p>Bonjour,</p>
-            <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
-            <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
-        `
+        subject: `Commande #${orderIdShort} Livrée 🍽️`,
+        html: getEmailTemplate("Bon Appétit !", body)
       });
     }
 
     // --- 4. Statut: MATÉRIEL EN ATTENTE ---
     else if (newStatus === "en attente du retour de matériel") {
-      // Email A
+      // Email A (Bon appétit)
+      const bodyA = `
+        <p>Bonjour ${orderData.prenom || ""},</p>
+        <p>Votre commande <strong>#${orderIdShort}</strong> a été livrée avec succès.</p>
+        <p>Merci de votre confiance. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
+      `;
       emailsToSend.push({
-        subject: `Votre commande #${orderIdShort} a bien été livrée`,
-        html: `
-            <p>Bonjour,</p>
-            <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
-            <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
-        `
+        subject: `Commande #${orderIdShort} Livrée 🍽️`,
+        html: getEmailTemplate("Bon Appétit !", bodyA)
       });
 
-      // Email B
+      // Email B (Rappel Matériel)
+      const bodyB = `
+        <p>Bonjour,</p>
+        <p>Suite à la livraison de votre commande <strong>#${orderIdShort}</strong>, nous vous rappelons que le matériel de service doit nous être restitué.</p>
+        <div style="background-color: #fff1f2; border: 1px solid #fecdd3; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #9f1239; font-weight: bold; margin-top: 0;">⚠️ Rappel Important</p>
+            <p style="color: #9f1239; margin-bottom: 0;">Le matériel doit être restitué dans les 10 jours ouvrés.</p>
+        </div>
+        <p style="font-size: 0.9em; color: #7f1d1d;">Note : Passé ce délai, une pénalité forfaitaire de 600€ sera appliquée (voir CGV).</p>
+        <p>Merci de nous contacter rapidement pour convenir du retour.</p>
+        <a href="https://vite-et-gourmand.web.app/contact" class="btn">Contacter le service client</a>
+      `;
       emailsToSend.push({
-        subject: `⚠️ URGENT : Rappel de restitution de matériel - Commande #${orderIdShort}`,
-        html: `
-            <p>Bonjour,</p>
-            <p>Votre commande #${orderIdShort} a bien été livrée.</p>
-            <p>Veuillez noter que le matériel doit être restitué dans les 10 jours ouvrés.</p>
-            <p style="color: #CC0000; font-weight: bold;">Passé ce délai, une pénalité forfaitaire de 600€ sera appliquée (voir CGV).</p>
-            <p>Merci de nous contacter rapidement pour convenir du retour.</p>
-        `
+        subject: `⚠️ Retour Matériel - Commande #${orderIdShort}`,
+        html: getEmailTemplate("Restitution de Matériel", bodyB)
       });
     }
 
@@ -297,25 +370,28 @@ exports.checkOrderStatusUpdate = require("firebase-functions/v1/firestore")
 
       // CAS SPÉCIAL : Saut direct de "en cours" à "terminée"
       if (previousStatus === "en cours de livraison") {
+        const bodyDelivered = `
+           <p>Bonjour ${orderData.prenom || ""},</p>
+           <p>Votre commande <strong>#${orderIdShort}</strong> a été livrée avec succès.</p>
+           <p>Nous vous souhaitons un excellent repas ! 🍽️</p>
+        `;
         emailsToSend.push({
-          subject: `Votre commande #${orderIdShort} a bien été livrée`,
-          html: `
-              <p>Bonjour,</p>
-              <p>Votre commande #${orderIdShort} a été livrée avec succès.</p>
-              <p>Merci de votre confiance, cela nous fait vraiment plaisir de vous accompagner aujourd’hui. Nous vous souhaitons un excellent repas et un très bon appétit ! 🍽️😊</p>
-          `
+          subject: `Commande #${orderIdShort} Livrée`,
+          html: getEmailTemplate("Bon Appétit !", bodyDelivered)
         });
       }
 
       // Invitation à l'avis
+      const bodyReview = `
+        <p>Bonjour ${orderData.prenom || ""},</p>
+        <p>Votre commande <strong>#${orderIdShort}</strong> est maintenant clôturée.</p>
+        <p>Nous espérons que vous vous êtes régalé ! Votre avis est précieux pour nous aider à nous améliorer et pour guider nos futurs clients.</p>
+        <p>Cela ne prend que 30 secondes :</p>
+        <a href="https://vite-et-gourmand.web.app/profil" class="btn">Laisser un avis ⭐</a>
+      `;
       emailsToSend.push({
-        subject: `⭐ Votre avis compte ! Commande #${orderIdShort} finalisée`,
-        html: `
-            <p>Bonjour,</p>
-            <p>Votre commande #${orderIdShort} est maintenant clôturée.</p>
-            <p>Votre avis nous est précieux. Connectez-vous à votre espace personnel pour laisser une note et un commentaire !</p>
-            <p>Lien vers votre profil : [Ajouter ici l'URL de la page Profil]</p>
-        `
+        subject: `⭐ Votre avis sur la commande #${orderIdShort}`,
+        html: getEmailTemplate("Votre avis compte !", bodyReview)
       });
     }
 
@@ -344,32 +420,25 @@ exports.sendWelcomeEmail = require("firebase-functions/v1").auth.user().onCreate
   const email = user.email;
   const displayName = user.displayName || "Cher client";
 
+  const bodyContent = `
+    <p>Nous sommes ravis de vous compter parmi nos nouveaux clients.</p>
+    <p>Chez <strong>Vite & Gourmand</strong>, notre mission est de vous régaler avec des repas frais, préparés avec soin et livrés avec le sourire.</p>
+    <p>Dès maintenant, vous pouvez :</p>
+    <ul style="padding-left: 20px;">
+        <li style="margin-bottom: 5px;">Consulter nos menus de saison.</li>
+        <li style="margin-bottom: 5px;">Passer votre première commande en quelques clics.</li>
+        <li style="margin-bottom: 5px;">Nous contacter pour une demande spéciale.</li>
+    </ul>
+    <p>Pour commencer, rendez-vous sur votre espace personnel :</p>
+    <a href="https://vite-et-gourmand.web.app/login" class="btn">Me connecter</a>
+    <p style="margin-top: 30px; font-size: 0.9em; color: #777;">À très vite pour votre première dégustation !</p>
+  `;
+
   const mailOptions = {
     from: "contact.viteetgourmand@gmail.com",
     to: email,
     subject: "Bienvenue chez Vite & Gourmand ! 🥗",
-    html: `
-        <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
-            <h2>Bienvenue parmi nous, ${displayName} !</h2>
-            <p>Nous sommes ravis de vous compter parmi nos nouveaux clients.</p>
-            <p>Chez <strong>Vite & Gourmand</strong>, notre mission est de vous régaler avec des repas frais, 
-            préparés avec soin et livrés avec le sourire.</p>
-            <p>Dès maintenant, vous pouvez :</p>
-            <ul>
-                <li>Consulter nos menus de saison.</li>
-                <li>Passer votre première commande en quelques clics.</li>
-                <li>Nous contacter pour une demande spéciale.</li>
-            </ul>
-            <p>Pour commencer, rendez-vous sur votre espace personnel : 
-               <a href="https://votre-site-web.com/login" style="color: #27ae60; font-weight: bold;">Me connecter</a>
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee;">
-            <p style="font-size: 0.9em; color: #777;">
-                À très vite pour votre première dégustation !<br>
-                L'équipe Vite & Gourmand
-            </p>
-        </div>
-    `
+    html: getEmailTemplate(`Bienvenue, ${displayName} !`, bodyContent)
   };
 
   try {
@@ -419,26 +488,30 @@ exports.refuseOrder = onCall(async (request) => {
 
     // 3. Envoyer l'email de refus
     if (clientEmail) {
+      const bodyContent = `
+        <p>Bonjour ${orderData.prenom || ""},</p>
+        <p>Nous sommes au regret de vous informer que nous ne pouvons pas honorer votre commande.</p>
+        
+        <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 8px; margin: 20px 0;">
+             <p style="margin: 0; color: #991b1b;"><strong>Commande #${orderIdShort}</strong></p>
+             <p style="margin: 5px 0 0 0; color: #991b1b;">${orderData.nom_menu}</p>
+        </div>
+
+        <p><strong>Motif du refus :</strong></p>
+        <div style="background-color: #fff; padding: 15px; border-left: 4px solid #ef4444; font-style: italic; color: #555;">
+             "${reason}"
+        </div>
+        
+        <p style="margin-top: 20px;">Cette commande a été annulée et ne vous sera pas facturée (ou sera remboursée si déjà payée).</p>
+        <p>Nous nous excusons sincèrement pour la gêne occasionnée et espérons vous revoir bientôt.</p>
+        <a href="https://vite-et-gourmand.web.app/menus" class="btn">Voir d'autres menus</a>
+      `;
+
       await transporter.sendMail({
         from: "contact.viteetgourmand@gmail.com",
         to: clientEmail,
-        subject: `Mise à jour concernant votre commande #${orderIdShort}`,
-        html: `
-            <div style="font-family: sans-serif; color: #333;">
-                <h2 style="color: #c0392b;">Commande Refusée</h2>
-                <p>Bonjour ${orderData.prenom || ""},</p>
-                <p>Nous sommes au regret de vous informer que nous ne pouvons pas honorer votre commande <strong>#${orderIdShort}</strong> (${orderData.nom_menu}).</p>
-                <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
-                <p><strong>Motif du refus :</strong></p>
-                <p style="background-color: #fceceb; padding: 15px; border-left: 4px solid #c0392b; font-style: italic;">
-                    "${reason}"
-                </p>
-                <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
-                <p>Cette commande a été annulée et ne vous sera pas facturée (ou sera remboursée si déjà payée).</p>
-                <p>Nous nous excusons pour la gêne occasionnée et espérons vous revoir bientôt.</p>
-                <p>L'équipe Vite & Gourmand</p>
-            </div>
-        `
+        subject: `Commande Refusée #${orderIdShort}`,
+        html: getEmailTemplate("Mise à jour de commande", bodyContent)
       });
     }
 

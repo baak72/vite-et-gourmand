@@ -72,7 +72,7 @@ const ContactView = () => {
               </div>
               <div>
                 <p className="text-zinc-500 text-xs uppercase font-bold tracking-wider">Email</p>
-                <p className="text-white font-montserrat font-semibold">contact@vite-gourmand.fr</p>
+                <p className="text-white font-montserrat font-semibold">contact@vite-et-gourmand.fr</p>
               </div>
             </div>
 
