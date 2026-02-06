@@ -12,7 +12,7 @@ const SavoirFaireCinematic = () => {
     {
       id: 0,
       title: "La Source",
-      description: "Nous choisissons nos partenaires avec la même exigence que nos produits. Une qualité intransigeante qui passe par une rémunération juste et valorisante pour nos agriculteurs, garants de cette excellence.",
+      description: "Nous choisissons nos partenaires avec la même exigence que nos produits. Une qualité intransigeante qui passe par une rémunération juste et valorisante pour nos agriculteurs.",
       icon: <Leaf />,
       image: LaSource
     },
@@ -33,7 +33,7 @@ const SavoirFaireCinematic = () => {
   ];
 
   return (
-    <section className="relative py-24 md:py-36 overflow-hidden">
+    <section className="relative py-16 md:py-36 overflow-hidden bg-white">
 
       <style>
         {`
@@ -44,11 +44,11 @@ const SavoirFaireCinematic = () => {
       </style>
 
       {/* --- SILK 3D BACKGROUND --- */}
-      <div className="absolute inset-0 w-full h-full z-0">
+      <div className="absolute inset-0 w-full h-full z-0 opacity-50 md:opacity-100">
         <Silk
           speed={1.5}
           scale={0.6}
-          color="#ffffff"
+          color="#d4d4d8"
           noiseIntensity={1}
           rotation={3.80}
         />
@@ -57,80 +57,69 @@ const SavoirFaireCinematic = () => {
       <div className="container mx-auto px-6 max-w-7xl relative z-10">
 
         {/* --- EN-TÊTE --- */}
-        <div className="mb-28 text-center max-w-3xl mx-auto">
-          <h4 className="text-xs font-semibold tracking-[0.4em] text-amber-700 uppercase mb-6">
+        <div className="mb-12 md:mb-28 text-center max-w-3xl mx-auto">
+          <h4 className="text-[10px] md:text-xs font-semibold tracking-[0.4em] text-amber-700 uppercase mb-4 md:mb-6">
             Chaque détail compte.
           </h4>
-          <h2 className="text-6xl md:text-8xl font-serif text-black leading-tight">
-            <span className="block text-zinc-400 italic text-5xl md:text-6xl mb-2 font-playfair">L'Art de</span>
+          <h2 className="text-4xl md:text-8xl font-serif text-black leading-tight">
+            <span className="block text-zinc-400 italic text-3xl md:text-6xl mb-2 font-playfair">L'Art de</span>
             L'EXCEPTION
           </h2>
         </div>
 
         {/* --- ACCORDÉON --- */}
-        <div className="flex flex-col md:flex-row gap-4 h-[600px] md:h-[600px]">
+        <div className="flex flex-col md:flex-row gap-4 h-[700px] md:h-[600px]">
           {items.map((item) => {
             const isActive = activeId === item.id;
 
             return (
               <div
                 key={item.id}
-                onMouseEnter={() => setActiveId(item.id)}
+                onMouseEnter={() => window.innerWidth >= 768 && setActiveId(item.id)}
                 onClick={() => setActiveId(item.id)}
                 className={`
-                  relative overflow-hidden rounded-3xl cursor-pointer group h-full
+                  relative overflow-hidden rounded-2xl md:rounded-3xl cursor-pointer group h-full
                   will-change-[flex-grow] transform-gpu
                   transition-[flex-grow] duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
-                  ${isActive ? 'grow-3 shadow-2xl' : 'grow-[0.5] md:grow-[0.8]'}
+                  ${isActive ? 'grow-[3] shadow-2xl' : 'grow-[0.4] md:grow-[0.8]'}
                   bg-zinc-900
                 `}
               >
                 {/* --- IMAGE & OMBRES --- */}
                 <div className="absolute inset-0 w-full h-full pointer-events-none">
                   
-                  {/* Ombre Verticale de fond */}
-                  <div
-                    className={`
-                      absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent z-10 
-                      transition-opacity duration-1000 ease-in-out
-                      ${isActive ? 'opacity-80' : 'opacity-60'}
-                    `}
-                  />
+                  {/* Overlay Mobile Sombre (actif uniquement sur mobile et quand la carte est active) */}
+                  <div className={`
+                    absolute inset-0 z-10 
+                    bg-black/60 md:bg-transparent 
+                    transition-opacity duration-1000 
+                    ${isActive ? 'opacity-100' : 'opacity-0'}
+                  `} />
 
-                  {/* Ombre Latérale (Gauche vers Droite) */}
+                  {/* Ombres existantes */}
+                  <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10 transition-opacity duration-1000 ${isActive ? 'opacity-80' : 'opacity-60'}`} />
+                  <div className={`absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent z-10 transition-opacity duration-1000 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
+
+                  {/* Masque Inactif (Flou) */}
                   <div 
                     className={`
-                      absolute inset-0 bg-linear-to-r from-black/80 via-black/20 to-transparent z-10
-                      transition-opacity duration-1000
-                      ${isActive ? 'opacity-100' : 'opacity-0'}
-                    `}
-                  />
-
-                  <div 
-                    className={`
-                      absolute bottom-0 left-0 w-full h-1/2 z-10
-                      bg-black/10
+                      absolute bottom-0 left-0 w-full h-1/2 z-10 bg-black/10
                       transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)]
                       ${isActive 
                         ? 'opacity-0 backdrop-blur-none' 
-                        : 'opacity-100 backdrop-blur-md'}
+                        : 'opacity-100 backdrop-blur-[2px] md:backdrop-blur-md'}
                     `}
-                    style={{
-                      maskImage: 'linear-gradient(to top, black 20%, transparent 100%)',
-                      WebkitMaskImage: 'linear-gradient(to top, black 20%, transparent 100%)'
-                    }}
+                    style={{ maskImage: 'linear-gradient(to top, black 20%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to top, black 20%, transparent 100%)' }}
                   />
 
                   {/* Image */}
                   <img
                     src={item.image}
                     alt={item.title}
-                    loading="eager"
                     className={`
-                      w-full h-full object-cover 
-                      transform-gpu will-change-transform
+                      w-full h-full object-cover transform-gpu will-change-transform
                       transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)]
-                      ${isActive ? 'scale-110' : 'scale-100 grayscale-20%'}
+                      ${isActive ? 'scale-110' : 'scale-100 grayscale-[20%]'}
                     `}
                   />
                 </div>
@@ -140,46 +129,37 @@ const SavoirFaireCinematic = () => {
                   
                   {/* === ÉTAT INACTIF === */}
                   <div className={`
-                    absolute bottom-10 left-1/2 -translate-x-1/2 w-full
+                    absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 w-full
                     flex flex-col items-center justify-end gap-4
                     transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]
-                    ${isActive 
-                      ? 'opacity-0 translate-y-8 pointer-events-none' 
-                      : 'opacity-100 translate-y-0 delay-200'}
+                    ${isActive ? 'opacity-0 translate-y-8 pointer-events-none' : 'opacity-100 translate-y-0 delay-200'}
                   `}>
                     
-                    <span className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg group-hover:bg-white/20 transition-colors">
-                      {React.cloneElement(item.icon, { size: 20 })}
+                    {/* Icone masquée sur mobile (hidden), visible sur desktop (md:flex) */}
+                    <span className="hidden md:flex w-12 h-12 rounded-full bg-white/10 backdrop-blur-md items-center justify-center text-white border border-white/20 shadow-lg">
+                      {React.cloneElement(item.icon, { size: 18 })}
                     </span>
 
-                    <h3 className="text-sm font-montserrat font-semibold text-white/90 tracking-[0.2em] uppercase text-center whitespace-nowrap">
+                    <h3 className="text-xs md:text-sm font-montserrat font-semibold text-white/90 tracking-[0.2em] uppercase text-center whitespace-nowrap">
                       {item.title}
                     </h3>
-
                   </div>
 
                   {/* === ÉTAT ACTIF === */}
                   <div className={`relative z-30 ${isActive ? 'block' : 'pointer-events-none'}`}>
-                    
-                    {/* Titre */}
                     <h3 className={`
-                      text-4xl md:text-6xl font-serif text-white mb-4 leading-none drop-shadow-lg origin-left
+                      text-3xl md:text-6xl font-serif text-white mb-2 md:mb-4 leading-none drop-shadow-lg origin-left
                       transform-gpu transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
-                      ${isActive 
-                        ? 'opacity-100 translate-y-0 blur-0 delay-100' 
-                        : 'opacity-0 translate-y-8 blur-md duration-200'}
+                      ${isActive ? 'opacity-100 translate-y-0 blur-0 delay-100' : 'opacity-0 translate-y-8 blur-md duration-200'}
                     `}>
                       {item.title}
                     </h3>
 
-                    {/* Description */}
                     <div className={`
                       transform-gpu transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
-                      ${isActive 
-                        ? 'opacity-100 translate-y-0 blur-0 delay-200' 
-                        : 'opacity-0 translate-y-4 blur-sm duration-150'}
+                      ${isActive ? 'opacity-100 translate-y-0 blur-0 delay-200' : 'opacity-0 translate-y-4 blur-sm duration-150'}
                     `}>
-                      <p className="text-zinc-200 text-lg font-light leading-relaxed max-w-lg mb-8 drop-shadow-md border-l-2 border-white/30 pl-4">
+                      <p className="text-zinc-200 text-sm md:text-lg font-light leading-relaxed max-w-lg mb-4 md:mb-8 drop-shadow-md border-l-2 border-white/30 pl-4">
                         {item.description}
                       </p>
                     </div>
