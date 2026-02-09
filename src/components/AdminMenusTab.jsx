@@ -50,8 +50,8 @@ const AdminMenusTab = () => {
           prix_par_personne: '',
           nombre_personne_minimum: '',
           image: '',
-          theme_libelle: '',
-          regime_libelle: '',
+          theme_libelle: 'Classique',
+          regime_libelle: 'Aucun', // Valeur par défaut
           conditions: ''
         });
       }
@@ -108,19 +108,19 @@ const AdminMenusTab = () => {
     }
   };
 
-  if (isLoading) return <div className="text-center py-10 text-amber-500">Chargement des menus...</div>;
+  if (isLoading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500"></div></div>;
 
   // --- VUE LISTE ---
   if (view === 'list') {
     return (
       <div>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h3 className="text-xl font-bold text-white flex items-center gap-2 font-montserrat">
             <Utensils className="text-amber-500" /> Carte du Restaurant
           </h3>
           
           {isAdmin ? (
-            <button onClick={handleCreate} className="bg-amber-500 text-black px-4 py-2 rounded-lg font-bold uppercase text-xs tracking-wider flex items-center gap-2 hover:bg-amber-400 transition-colors shadow-lg">
+            <button onClick={handleCreate} className="w-full sm:w-auto bg-amber-500 text-black px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20">
               <Plus className="w-4 h-4" /> Ajouter Menu
             </button>
           ) : (
@@ -131,7 +131,41 @@ const AdminMenusTab = () => {
           )}
         </div>
 
-        <div className="bg-zinc-900 border border-white/10 rounded-xl overflow-hidden shadow-lg">
+        {/* --- VUE MOBILE : GRILLE DE CARTES --- */}
+        <div className="grid grid-cols-1 gap-4 md:hidden">
+            {menus.map((menu) => (
+                <div key={menu.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex gap-4 shadow-md">
+                    <img src={menu.image} alt="" className="w-20 h-20 rounded-lg object-cover bg-zinc-800 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                            <h4 className="font-bold text-white text-sm truncate">{menu.nom_menu}</h4>
+                            <span className="font-bold text-amber-500 text-sm">{menu.prix_par_personne}€</span>
+                        </div>
+                        <p className="text-zinc-500 text-xs line-clamp-2 mt-1">{menu.description}</p>
+                        
+                        <div className="flex justify-between items-center mt-3">
+                            <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase text-zinc-400">
+                                {menu.theme_libelle || "Classique"}
+                            </span>
+                            
+                            {isAdmin && (
+                                <div className="flex gap-2">
+                                    <button onClick={() => handleEdit(menu)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors">
+                                        <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => handleDelete(menu.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        {/* --- VUE PC : TABLEAU --- */}
+        <div className="hidden md:block bg-zinc-900 border border-white/10 rounded-xl overflow-hidden shadow-lg">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-zinc-950 text-zinc-500 text-xs uppercase font-bold tracking-wider">
@@ -140,7 +174,7 @@ const AdminMenusTab = () => {
                   <th className="px-6 py-4">Détails</th>
                   <th className="px-6 py-4">Prix</th>
                   <th className="px-6 py-4">Catégorie</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  {isAdmin && <th className="px-6 py-4 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -162,14 +196,16 @@ const AdminMenusTab = () => {
                         {menu.theme_libelle}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button onClick={() => handleEdit(menu)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(menu.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+                    {isAdmin && (
+                        <td className="px-6 py-4 text-right space-x-2">
+                        <button onClick={() => handleEdit(menu)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors">
+                            <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(menu.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -180,16 +216,16 @@ const AdminMenusTab = () => {
     );
   }
 
-  // --- VUE FORMULAIRE ---
+  // --- VUE FORMULAIRE (Responsive) ---
   return (
-    <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 shadow-xl">
+    <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 md:p-6 shadow-xl">
       
       {/* En-tête Formulaire */}
-      <div className="flex justify-between items-center mb-6 pb-6 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-white/10">
         <h2 className="text-xl font-bold font-playfair text-white">
           {editingMenu ? "Modifier le menu" : "Ajouter un menu"}
         </h2>
-        <button onClick={handleCancel} className="text-zinc-400 hover:text-white flex items-center gap-2 text-sm font-bold uppercase">
+        <button onClick={handleCancel} className="text-zinc-400 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-white/5 px-3 py-2 rounded-lg">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
       </div>
@@ -256,6 +292,7 @@ const AdminMenusTab = () => {
           <div className="space-y-2">
             <label className="block font-bold text-zinc-500 uppercase text-xs">Régime</label>
             <select {...register("regime_libelle")} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500 cursor-pointer">
+              <option value="Aucun">Aucun</option>
               <option value="Végétarien">Végétarien</option>
               <option value="Sans Gluten">Sans Gluten</option>
             </select>
@@ -276,22 +313,23 @@ const AdminMenusTab = () => {
         {/* Conditions */}
         <div className="space-y-2">
           <label className="block font-bold text-zinc-500 uppercase text-xs">Conditions (Optionnel)</label>
-          <input {...register("conditions")} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500" />
+          <input {...register("conditions")} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500" placeholder="Ex: Commandez 48h à l'avance" />
         </div>
 
         {/* Boutons Actions */}
-        <div className="pt-6 border-t border-white/10 flex justify-end gap-4">
+        <div className="pt-6 border-t border-white/10 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
+           {/* Message Erreur Mobile */}
            {Object.keys(errors).length > 0 && (
-             <div className="mr-auto flex items-center gap-2 text-red-400 bg-red-500/10 px-3 py-2 rounded-lg">
-               <AlertCircle className="w-4 h-4"/> <span className="text-xs font-bold">Formulaire incomplet</span>
+             <div className="sm:mr-auto flex items-center justify-center gap-2 text-red-400 bg-red-500/10 px-3 py-2 rounded-lg text-xs font-bold w-full sm:w-auto">
+               <AlertCircle className="w-4 h-4"/> Formulaire incomplet
              </div>
            )}
           
-          <button type="button" onClick={handleCancel} className="px-6 py-3 rounded-lg border border-white/10 text-white hover:bg-white/5 transition-colors text-sm font-bold uppercase tracking-wider">
+          <button type="button" onClick={handleCancel} className="w-full sm:w-auto px-6 py-3 rounded-lg border border-white/10 text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-wider">
             Annuler
           </button>
-          <button type="submit" disabled={isSubmitting} className="px-8 py-3 rounded-lg bg-amber-500 text-black font-bold uppercase tracking-widest hover:bg-amber-400 transition-colors flex items-center gap-2 disabled:opacity-50 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-            {isSubmitting ? "..." : <><Save className="w-4 h-4" /> Enregistrer</>}
+          <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-8 py-3 rounded-lg bg-amber-500 text-black font-bold uppercase tracking-widest hover:bg-amber-400 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-amber-500/20">
+            {isSubmitting ? "Sauvegarde..." : <><Save className="w-4 h-4" /> Enregistrer</>}
           </button>
         </div>
       </form>
