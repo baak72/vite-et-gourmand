@@ -147,13 +147,6 @@ const SavoirFaireCinematic = () => {
 
                   {/* === ÉTAT ACTIF === */}
                   <div className={`relative z-30 ${isActive ? 'block' : 'pointer-events-none'}`}>
-                    <h3 className={`
-                      text-3xl md:text-6xl font-serif text-white mb-2 md:mb-4 leading-none drop-shadow-lg origin-left
-                      transform-gpu transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
-                      ${isActive ? 'opacity-100 translate-y-0 blur-0 delay-100' : 'opacity-0 translate-y-8 blur-md duration-200'}
-                    `}>
-                      {item.title}
-                    </h3>
 
                     <div className={`
                       transform-gpu transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
