@@ -26,7 +26,7 @@ const HeroSection = () => {
           style={{ backgroundImage: `url(${heroImage})` }}
         >
           {/* Couche sombre légère */}
-          <div className="absolute inset-0 bg-black/30"></div>
+          <div className="absolute inset-0 bg-black/50"></div>
 
           {/* Dégradés esthétiques */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
@@ -45,7 +45,7 @@ const HeroSection = () => {
           className="font-playfair text-5xl sm:text-6xl md:text-8xl font-medium text-white leading-[1.1] mb-28 drop-shadow-lg"
         >
           L'Art de <br className="md:hidden" />
-          <span className="italic text-amber-400/90 font-light ml-2 md:ml-4">sublimer</span> <br />
+          <span className="italic text-amber-500/90 font-light ml-2 md:ml-4">sublimer</span> <br />
           vos instants.
         </motion.h1>
 
@@ -59,7 +59,7 @@ const HeroSection = () => {
           {/* Bouton Primaire */}
           <Link
             to="/menus"
-            className="group relative overflow-hidden bg-amber-400/90 text-zinc-900 font-montserrat font-semibold py-4 px-10 rounded-sm w-full sm:w-auto text-center shadow-lg shadow-black/20"
+            className="group relative overflow-hidden bg-amber-500/90 text-zinc-900 font-montserrat font-semibold py-4 px-10 rounded-sm w-full sm:w-auto text-center shadow-lg shadow-black/20"
           >
             <span className="relative z-10 tracking-[0.2em] text-xs md:text-sm uppercase">Découvrir la carte</span>
           </Link>

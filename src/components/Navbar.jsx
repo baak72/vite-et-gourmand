@@ -153,7 +153,7 @@ const Navbar = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-amber-400 text-zinc-900 text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-white/5 whitespace-nowrap"
+                  className="px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-amber-500 text-zinc-900 text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-white/5 whitespace-nowrap"
                 >
                   Connexion
                 </Link>
