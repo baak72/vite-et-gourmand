@@ -150,8 +150,7 @@ const MenuDetailView = () => {
                 className="w-full group relative overflow-hidden bg-amber-500 text-black font-montserrat font-bold text-lg py-5 px-8 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all duration-300 transform hover:-translate-y-1"
               >
                 <span className="relative z-10 flex items-center justify-center gap-3">
-                  Commencer la commande
-                  <CheckCircle2 className="w-5 h-5 text-black" />
+                  Démarrer la commande
                 </span>
                 {/* Effet hover background */}
                 <div className="absolute inset-0 bg-amber-500 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>

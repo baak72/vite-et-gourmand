@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './utils/firebase';
 import { useAuthStore } from './store/useAuthStore';
 import { ReactLenis } from 'lenis/react'
+import { ChefHat } from 'lucide-react';
 import 'lenis/dist/lenis.css'
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
@@ -24,71 +25,46 @@ import AdminDashboardView from './views/AdminDashboardView';
 
 const router = createBrowserRouter([
   {
-    
     element: (
       <>
         <ScrollToTop />
         <Layout />
       </>
     ),
-    // (Possibilité d'ajouter une page d'erreur ici plus tard)
     children: [
-      {
-        path: "/",
-        element: <HomeView />,
-      },
-      {
-        path: "/menus",
-        element: <MenusView />,
-      },
-      {
-        path: "/contact",
-        element: <ContactView />,
-      },
-      { path: "/login", 
-        element: <LoginView />,
-      },
-      {
-        path: "/register",
-        element: <RegisterView />,
-      },
-      {
-        path: "/menu/:menuId",
-        element: <MenuDetailView />,
-      },
-      { path: "/mentions-legales",
-        element: <MentionsLegalesView /> },
-      { path: "/cgv", 
-        element: <CGVView /> },
+      { path: "/", element: <HomeView /> },
+      { path: "/menus", element: <MenusView /> },
+      { path: "/contact", element: <ContactView /> },
+      { path: "/login", element: <LoginView /> },
+      { path: "/register", element: <RegisterView /> },
+      { path: "/menu/:menuId", element: <MenuDetailView /> },
+      { path: "/mentions-legales", element: <MentionsLegalesView /> },
+      { path: "/cgv", element: <CGVView /> },
       {
         element: <ProtectedRoute />,
         children: [
-          {
-            path: "/profil",
-            element: <ProfilView />, 
-          },
-          {
-            path: "/commande/:menuId",
-            element: <CommandeView />,
-          }
+          { path: "/profil", element: <ProfilView /> },
+          { path: "/commande/:menuId", element: <CommandeView /> }
         ]
       },
       {
         element: <RoleProtectedRoute />,
         children: [
-          {
-            path: "/employe/dashboard",
-            element: <EmployeeDashboardView />,
-          },
-          {
-            path: "/admin/dashboard",
-            element: <AdminDashboardView />,
-          }
+          { path: "/employe/dashboard", element: <EmployeeDashboardView /> },
+          { path: "/admin/dashboard", element: <AdminDashboardView /> }
         ]
       }, 
     ], 
   }
 ]);
+
+// --- CORRECTION : Déplacé à l'extérieur du composant pour éviter l'erreur ESLint ---
+const loadingMessages = [
+  "Préchauffage des fourneaux...",
+  "Sélection des produits...",
+  "Dressage des assiettes...",
+  "Vite et Gourmand arrive..."
+];
 
 function App() {
   
@@ -97,6 +73,19 @@ function App() {
   
   // Création de l'état de chargement
   const [authReady, setAuthReady] = useState(false);
+  
+  // État pour le message de chargement
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+
+  // --- Effet pour faire tourner les messages ---
+  useEffect(() => {
+    if (authReady) return;
+    const interval = setInterval(() => {
+      // loadingMessages est maintenant accessible ici sans être une dépendance réactive
+      setLoadingMsgIndex((prev) => (prev + 1) % loadingMessages.length);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [authReady]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -118,9 +107,49 @@ function App() {
     return () => unsubscribe();
   }, [setUser, clearUser]);
 
-  // On n'affiche RIEN tant que le travail de vérification n'est pas terminé
+  // --- ÉCRAN DE CHARGEMENT LUXE ---
   if (!authReady) {
-    return <div>Chargement de l'application...</div>;
+    return (
+      <div className="fixed inset-0 z-[9999] bg-zinc-950 flex flex-col items-center justify-center font-sans">
+         {/* Styles d'animation injectés directement */}
+         <style>{`
+           @keyframes progress-indeterminate {
+             0% { transform: translateX(-100%); }
+             50% { transform: translateX(0%); }
+             100% { transform: translateX(100%); }
+           }
+           .animate-progress-indeterminate {
+             animation: progress-indeterminate 1.5s infinite linear;
+           }
+           .font-playfair { font-family: 'Playfair Display', serif; }
+           .font-montserrat { font-family: 'Montserrat', sans-serif; }
+         `}</style>
+
+         {/* Cercle Animé */}
+         <div className="relative flex items-center justify-center w-24 h-24 mb-8">
+           <div className="absolute inset-0 rounded-full border-4 border-white/5 border-t-amber-500 animate-spin" style={{ animationDuration: '1.5s' }}></div>
+           <div className="absolute inset-2 rounded-full border-2 border-white/5 border-b-amber-500/50 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2s' }}></div>
+           <div className="animate-pulse text-white">
+               <ChefHat size={32} />
+           </div>
+         </div>
+
+         {/* Titre */}
+         <h1 className="font-playfair text-2xl text-white font-bold tracking-widest uppercase mb-4 animate-in fade-in zoom-in duration-700">
+           Vite <span className="text-amber-500 italic">&</span> Gourmand
+         </h1>
+
+         {/* Message Changeant */}
+         <p className="text-amber-500/80 font-montserrat text-xs uppercase tracking-[0.2em] animate-pulse min-h-[20px] text-center px-4">
+           {loadingMessages[loadingMsgIndex]}
+         </p>
+
+         {/* Barre de progression décorative */}
+         <div className="mt-8 w-48 h-1 bg-white/10 rounded-full overflow-hidden">
+           <div className="h-full bg-amber-500 animate-progress-indeterminate origin-left"></div>
+         </div>
+      </div>
+    );
   }
   
   return (
