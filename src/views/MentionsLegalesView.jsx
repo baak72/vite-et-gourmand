@@ -35,10 +35,10 @@ const MentionsLegalesView = () => {
                 <h2 className="text-xl font-bold font-montserrat text-white mb-4">1. Éditeur du Site</h2>
                 <div className="space-y-2 text-zinc-400 text-sm leading-relaxed">
                   <p><strong className="text-white">Raison sociale :</strong> Vite & Gourmand</p>
-                  <p><strong className="text-white">Forme juridique :</strong> Société (Julie et José) </p>
-                  <p><strong className="text-white">Siège social :</strong> Bordeaux, France (Entreprise établie depuis 25 ans)</p>
+                  <p><strong className="text-white">Forme juridique :</strong> SAS </p>
+                  <p><strong className="text-white">Siège social :</strong> Bordeaux, France</p>
                   <p><strong className="text-white">Responsables de la publication :</strong> Julie & José (Co-gérants)</p>
-                  <p><strong className="text-white">Contact :</strong> contact@viteetgourmand.fr</p>
+                  <p><strong className="text-white">Contact :</strong> contact.viteetgourmand@gmail.com</p>
                 </div>
               </div>
             </div>
@@ -65,8 +65,8 @@ const MentionsLegalesView = () => {
               <div>
                 <h2 className="text-xl font-bold font-montserrat text-white mb-4">3. Hébergement</h2>
                 <p className="text-zinc-400 text-sm leading-relaxed">
-                  L'application est hébergée sur une infrastructure Cloud sécurisée (ex: Fly.io / Vercel / Azure).<br />
-                  Les données utilisateurs sont stockées via Google Firebase (Base de données et Authentification).
+                  L'application est hébergée sur une infrastructure Cloud sécurisée (Firebase Hosting).<br />
+                  Les données utilisateurs sont stockées via Google Firebase.
                 </p>
               </div>
             </div>
@@ -84,7 +84,6 @@ const MentionsLegalesView = () => {
                 <ul className="list-disc list-inside text-zinc-400 text-sm space-y-2">
                   <li><strong>Données collectées :</strong> Nom, prénom, email, téléphone, adresses postales.</li>
                   <li><strong>Finalité :</strong> Gestion des commandes, livraison, facturation et contact client.</li>
-                  <li><strong>Droits :</strong> Vous disposez d'un droit d'accès, de modification et de suppression de vos données depuis votre espace utilisateur.</li>
                 </ul>
               </div>
             </div>

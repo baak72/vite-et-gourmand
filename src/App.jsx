@@ -58,7 +58,6 @@ const router = createBrowserRouter([
   }
 ]);
 
-// --- CORRECTION : Déplacé à l'extérieur du composant pour éviter l'erreur ESLint ---
 const loadingMessages = [
   "Préchauffage des fourneaux...",
   "Sélection des produits...",
@@ -81,7 +80,6 @@ function App() {
   useEffect(() => {
     if (authReady) return;
     const interval = setInterval(() => {
-      // loadingMessages est maintenant accessible ici sans être une dépendance réactive
       setLoadingMsgIndex((prev) => (prev + 1) % loadingMessages.length);
     }, 1500);
     return () => clearInterval(interval);

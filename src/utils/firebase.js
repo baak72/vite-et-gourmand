@@ -6,13 +6,13 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 
 // L'objet de configuration personnel 
 const firebaseConfig = {
-  apiKey: "AIzaSyDftTtvyK1w9BcJS5kDvPIkfDj-gLpLkpI",
-  authDomain: "vite-et-gourmand.firebaseapp.com",
-  projectId: "vite-et-gourmand",
-  storageBucket: "vite-et-gourmand.firebasestorage.app",
-  messagingSenderId: "708204392603",
-  appId: "1:708204392603:web:5e2ec2ac9553dc591f563e",
-  measurementId: "G-L4PDLYSH9J" // Clé Analytics
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialisation de l'application Firebase
