@@ -1,58 +1,88 @@
-🍽️ Vite & Gourmand - Application Web Traiteur
+# 🍽️ Vite & Gourmand – Application Web Traiteur
 
-📖 Présentation du Projet
+## 📖 Présentation du Projet
 
-Vite & Gourmand est une application web complète développée pour un traiteur bordelais (Julie et José) souhaitant digitaliser son offre. Ce projet a été réalisé par l'agence fictive FastDev dans le cadre de l'Évaluation en Cours de Formation (ECF) pour le titre professionnel Développeur Web et Web Mobile.
+**Vite & Gourmand** est une application web complète développée pour un traiteur bordelais (Julie et José) souhaitant digitaliser son offre.  
 
-L'application permet aux visiteurs de consulter les menus, aux clients de passer et suivre leurs commandes, et aux employés/administrateurs de gérer l'activité de l'entreprise.
+Ce projet a été réalisé par l'agence fictive **FastDev** dans le cadre de l'Évaluation en Cours de Formation (ECF) pour le titre professionnel **Développeur Web et Web Mobile**.
 
-🔗 Liens Importants & Livrables
+L'application permet :
+
+- 👀 Aux visiteurs de consulter les menus  
+- 🛒 Aux clients de passer et suivre leurs commandes  
+- 🧑‍🍳 Aux employés / administrateurs de gérer l'activité de l'entreprise  
+
+---
+
+## 🔗 Liens Importants & Livrables
 
 Ce dépôt GitHub fait partie d'un ensemble de livrables d'examen.
 
-🌐 **Application en production (Déploiement) :** [https://vite-et-gourmand.web.app](https://vite-et-gourmand.web.app)
+🌐 **Application en production (Déploiement)**  
+👉 https://vite-et-gourmand.web.app  
 
-📋 Gestion de projet (Kanban) : [Insérer le lien Jira/Trello/Notion ici]
+📋 **Gestion de projet (Kanban – Trello)**  
+👉 https://trello.com/b/qrpkZyqk/projet-vite-gourmand-suivi  
 
-📄 Documents annexes fournis séparément :
+📄 **Documents annexes fournis séparément :**
 
-Copie à rendre avec identifiants Administrateur.
+- Copie à rendre avec identifiants Administrateur  
+- Modèle Conceptuel de Données & Diagrammes de Cas d'utilisation  
+- Manuel d'utilisation  
+- Charte Graphique  
+- Maquettes (Figma)  
 
-Modèle Conceptuel de Données (MCD) & Diagrammes (Séquence, Cas d'utilisation).
+---
 
-Manuel d'utilisation, Charte Graphique et Maquettes (Figma).
+## 🛠️ Architecture & Choix Techniques
 
-🛠️ Architecture & Choix Techniques
+Conformément au cahier des charges exigeant une base de données **relationnelle (SQL)** ET **non relationnelle (NoSQL)**, le projet adopte une **architecture hybride** :
 
-Conformément au cahier des charges exigeant une base de données relationnelle (SQL) ET non relationnelle (NoSQL), ce projet adopte une architecture hybride :
+### 🎨 Front-End — React + Vite
 
-Front-End (React + Vite) : Choisi pour la réactivité de l'interface, facilitant la mise en place de filtres dynamiques sans rechargement de page.
+- Interface réactive
+- Filtres dynamiques sans rechargement de page
+- Expérience utilisateur fluide
 
-Back-End & NoSQL (Firebase) : * Firestore (NoSQL) est utilisé en production pour sa flexibilité (gestion dynamique des menus, allergènes, plats) et ses requêtes en temps réel (suivi des commandes).
+### 🔥 Back-End & NoSQL — Firebase
 
-Cloud Functions / Firebase Auth assurent la sécurité des accès et la logique métier côté serveur (attribution des rôles, protection des routes Admin).
+- **Firestore (NoSQL)**  
+  - Gestion dynamique des menus, allergènes, plats  
+  - Requêtes en temps réel (suivi des commandes)
 
-Schéma Relationnel (SQL) : Pour répondre aux exigences académiques de modélisation relationnelle, la structure complète de la base de données a été modélisée.
+- **Cloud Functions & Firebase Auth**  
+  - Sécurisation des accès  
+  - Attribution des rôles  
+  - Protection des routes administrateur  
+  - Logique métier côté serveur  
 
-👉 Les fichiers ddl.sql (création) et dml.sql (données de test) sont disponibles à la racine du projet dans le dossier /sql.
+### 🗄️ Schéma Relationnel (SQL)
 
-🚀 Guide de Déploiement Local
+Pour répondre aux exigences académiques de modélisation relationnelle :
 
-Pour tester l'application sur votre environnement de développement local, veuillez suivre les étapes ci-dessous :
+📁 Les fichiers suivants sont disponibles dans le dossier `/sql` :
 
-1. Prérequis
+- `ddl.sql` (création de la base)
+- `dml.sql` (données de test)
 
-Node.js (version 18 ou supérieure recommandée).
+---
 
-Git installé sur votre machine.
+## 🚀 Guide de Déploiement Local
 
-2. Installation
+### 1️⃣ Prérequis
 
-Clonez le dépôt sur votre machine locale :
+- Node.js (version 18 ou supérieure recommandée)
+- Git installé sur votre machine
 
-git clone [https://github.com/baak72/vite-et-gourmand.git](https://github.com/baak72/vite-et-gourmand.git)
-cd votre-repo-vite-et-gourmand
+---
 
+### 2️⃣ Installation
+
+Clonez le dépôt :
+
+```bash
+git clone https://github.com/baak72/vite-et-gourmand.git
+cd vite-et-gourmand
 
 Installez les dépendances du projet :
 
