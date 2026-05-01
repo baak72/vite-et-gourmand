@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form'; 
-import { getMenus, addMenu, updateMenu, deleteMenu } from '../utils/firebase';
+import api from '../utils/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { Plus, Edit, Trash2, Utensils, AlertTriangle, ArrowLeft, Save, AlertCircle } from 'lucide-react';
 
@@ -9,7 +9,7 @@ const AdminMenusTab = () => {
   const [menus, setMenus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Gestion de l'affichage
+  // --- GESTION DE LA VUE ---
   const [view, setView] = useState('list');
   const [editingMenu, setEditingMenu] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,14 +19,14 @@ const AdminMenusTab = () => {
 
   // --- PERMISSIONS ---
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role_id === 1 || user?.email === 'admin@viteetgourmand.fr';
+  const isAdmin = user?.role_id === 1; // Uniquement le rôle 1 est Admin
 
   // --- CHARGEMENT ---
   const fetchMenus = async () => {
     setIsLoading(true);
     try {
-      const data = await getMenus({});
-      setMenus(data);
+      const response = await api.get('/menus');
+      setMenus(response.data);
     } catch (error) {
       console.error("Erreur chargement menus:", error);
     } finally {
@@ -51,7 +51,7 @@ const AdminMenusTab = () => {
           nombre_personne_minimum: '',
           image: '',
           theme_libelle: 'Classique',
-          regime_libelle: 'Aucun', // Valeur par défaut
+          regime_libelle: 'Aucun',
           conditions: ''
         });
       }
@@ -78,11 +78,11 @@ const AdminMenusTab = () => {
   const handleDelete = async (id) => {
     if(!window.confirm("Supprimer ce menu définitivement ?")) return;
     try {
-      await deleteMenu(id);
+      await api.delete(`/admin/menus/${id}`);
       fetchMenus();
     } catch (error) {
       console.error(error);
-      alert("Erreur suppression");
+      alert("Erreur suppression. Vérifiez que ce menu n'est pas lié à des commandes.");
     }
   };
 
@@ -90,18 +90,20 @@ const AdminMenusTab = () => {
     setIsSubmitting(true);
     try {
       if (editingMenu) {
-        await updateMenu(editingMenu.id, data);
+        const menuId = editingMenu.id || editingMenu.menu_id;
+        await api.put(`/admin/menus/${menuId}`, data);
       } else {
+        // Mode Création
         if (!isAdmin) {
           alert("Seul l'admin peut ajouter un menu.");
           return;
         }
-        await addMenu(data);
+        await api.post('/admin/menus', data);
       }
       setView('list');
       fetchMenus();
     } catch (error) {
-      console.error(error);
+      console.error("Erreur api:", error.response || error);
       alert("Erreur lors de la sauvegarde.");
     } finally {
       setIsSubmitting(false);
@@ -134,7 +136,7 @@ const AdminMenusTab = () => {
         {/* --- VUE MOBILE : GRILLE DE CARTES --- */}
         <div className="grid grid-cols-1 gap-4 md:hidden">
             {menus.map((menu) => (
-                <div key={menu.id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex gap-4 shadow-md">
+                <div key={menu.id || menu.menu_id} className="bg-zinc-900 border border-white/10 rounded-xl p-4 flex gap-4 shadow-md">
                     <img src={menu.image} alt="" className="w-20 h-20 rounded-lg object-cover bg-zinc-800 shrink-0" />
                     <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
@@ -153,7 +155,7 @@ const AdminMenusTab = () => {
                                     <button onClick={() => handleEdit(menu)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors">
                                         <Edit className="w-4 h-4" />
                                     </button>
-                                    <button onClick={() => handleDelete(menu.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
+                                    <button onClick={() => handleDelete(menu.id || menu.menu_id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -179,7 +181,7 @@ const AdminMenusTab = () => {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {menus.map((menu) => (
-                  <tr key={menu.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={menu.id || menu.menu_id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4">
                       <img src={menu.image} alt="" className="w-16 h-12 rounded-lg object-cover bg-zinc-800" />
                     </td>
@@ -201,7 +203,7 @@ const AdminMenusTab = () => {
                         <button onClick={() => handleEdit(menu)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors">
                             <Edit className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(menu.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
+                        <button onClick={() => handleDelete(menu.id || menu.menu_id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
                             <Trash2 className="w-4 h-4" />
                         </button>
                         </td>
@@ -216,7 +218,7 @@ const AdminMenusTab = () => {
     );
   }
 
-  // --- VUE FORMULAIRE (Responsive) ---
+  // --- VUE FORMULAIRE ---
   return (
     <div className="bg-zinc-900 border border-white/10 rounded-xl p-4 md:p-6 shadow-xl">
       

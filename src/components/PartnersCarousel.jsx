@@ -33,29 +33,28 @@ const PartnersCarousel = () => {
   ];
 
   return (
-    // Mobile: py-10 | Desktop: py-18 (inchangé)
+    // Mobile: py-10 | Desktop: py-18
     <section className="relative py-10 md:py-18 bg-white overflow-hidden">
       
       {/* --- FOND VIVANT --- */}
       <div className="absolute inset-0 opacity-[0.4] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] contrast-100 brightness-100"></div>
       
-      {/* Mobile: w-full (pour maximiser l'espace) | Desktop: w-[80%] (inchangé) */}
+      {/* Mobile: w-full (pour maximiser l'espace) | Desktop: w-[80%] */}
       <div className="relative z-10 w-full md:w-[80%] mx-auto">
         <Marquee 
           gradient={true} 
           gradientColor={[255, 255, 255]} 
-          // Ajustement de la largeur du dégradé pour mobile (plus petit)
           gradientWidth={50}
           speed={30} 
           pauseOnHover={false}
         >
           {partnersLogos.map((partner) => (
-              // Mobile: mx-5 (moins d'espace) | Desktop: mx-12 (inchangé)
+              // Mobile: mx-5 (moins d'espace) | Desktop: mx-12
               <div key={partner.id} className="mx-5 md:mx-12 py-4">
                   <img 
                     src={partner.src} 
                     alt={partner.alt} 
-                    // Mobile: h-8 (plus petit) | Desktop: h-10 (inchangé)
+                    // Mobile: h-8 (plus petit) | Desktop: h-10
                     className="h-8 md:h-10 w-auto object-contain transition-all duration-300 filter grayscale opacity-50 hover:grayscale-0 hover:opacity-100 hover:scale-110 cursor-pointer" 
                   />
               </div>

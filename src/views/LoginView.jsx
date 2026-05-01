@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { signInUser, sendPasswordReset } from '../utils/firebase';
+import api from '../utils/api'; 
 import { useAuthStore } from '../store/useAuthStore';
 import { Mail, Lock, LogIn, AlertCircle, ArrowRight, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
 
@@ -21,11 +21,11 @@ const resetSchema = z.object({
 const LoginView = () => {
   // --- États ---
   const [isResetMode, setIsResetMode] = useState(false);
-  const [firebaseError, setFirebaseError] = useState(null);
+  const [authError, setAuthError] = useState(null);
   const [resetSuccess, setResetSuccess] = useState(null);
   
   const navigate = useNavigate();
-  useAuthStore((state) => state.setUser);
+  const setUser = useAuthStore((state) => state.setUser);
 
   // --- Formulaire de CONNEXION ---
   const { 
@@ -47,30 +47,46 @@ const LoginView = () => {
 
   // --- Action : Se Connecter ---
   const onLogin = async (data) => {
-    setFirebaseError(null);
+    setAuthError(null);
     try {
-      await signInUser(data.email, data.password);
+      // 1. On envoie la requête à Laravel
+      const response = await api.post('/login', {
+        email: data.email,
+        password: data.password
+      });
+
+      // 2. On sauvegarde le token VIP dans le navigateur
+      localStorage.setItem('auth_token', response.data.token);
+
+      // 3. On sauvegarde les infos de l'utilisateur dans Zustand
+      setUser(response.data.user);
+
+      // 4. On redirige vers le profil
       navigate('/profil');
+
     } catch (error) {
-      console.error("Erreur de connexion Firebase :", error.message);
-      if (error.code === 'auth/invalid-credential') {
-        setFirebaseError("Email ou mot de passe incorrect.");
+      console.error("Erreur détaillée :", error);
+      
+      // Si Laravel nous a envoyé un message d'erreur précis, on l'affiche !
+      if (error.response && error.response.data && error.response.data.message) {
+        setAuthError(error.response.data.message);
       } else {
-        setFirebaseError("Une erreur est survenue. Réessayez plus tard.");
+        setAuthError("Une erreur réseau est survenue.");
       }
     }
   };
 
-  // --- Action : Réinitialiser le mot de passe ---
+  // --- Action : Réinitialiser le mot de passe (TEMPORAIREMENT DÉSACTIVÉ) ---
   const onReset = async (data) => {
-    setFirebaseError(null);
+    console.log("Demande de reset pour :", data.email);
+    setAuthError(null);
     setResetSuccess(null);
     try {
-      await sendPasswordReset(data.email);
-      setResetSuccess("Un e-mail de réinitialisation vous a été envoyé. Vérifiez vos spams !");
+      // TODO: À implémenter avec Laravel plus tard
+      setAuthError("Cette fonctionnalité est en cours de migration vers le nouveau serveur.");
     } catch (error) {
       console.error("Erreur reset :", error.message);
-      setFirebaseError("Impossible d'envoyer l'email. Vérifiez l'adresse saisie.");
+      setAuthError("Impossible d'envoyer l'email.");
     }
   };
 
@@ -131,10 +147,10 @@ const LoginView = () => {
                   {resetSuccess}
                 </div>
               )}
-              {firebaseError && (
+              {authError && (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  {firebaseError}
+                  {authError}
                 </div>
               )}
 
@@ -152,7 +168,7 @@ const LoginView = () => {
                   type="button"
                   onClick={() => {
                     setIsResetMode(false);
-                    setFirebaseError(null);
+                    setAuthError(null);
                     setResetSuccess(null);
                   }}
                   className="w-full text-zinc-400 text-xs font-bold uppercase tracking-widest py-2 hover:text-white transition-colors flex items-center justify-center gap-2"
@@ -199,7 +215,7 @@ const LoginView = () => {
                     type="button"
                     onClick={() => {
                       setIsResetMode(true);
-                      setFirebaseError(null);
+                      setAuthError(null);
                     }}
                     className="text-xs text-amber-500 hover:text-amber-400 hover:underline transition-all"
                   >
@@ -223,11 +239,11 @@ const LoginView = () => {
                 )}
               </div>
 
-              {/* Erreurs Firebase Login */}
-              {firebaseError && (
+              {/* Erreurs API Login */}
+              {authError && (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center justify-center gap-2">
                   <AlertCircle className="w-4 h-4" />
-                  {firebaseError}
+                  {authError}
                 </div>
               )}
 

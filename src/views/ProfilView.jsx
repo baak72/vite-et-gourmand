@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { getOrdersByUserId, cancelOrder, addReview } from '../utils/firebase';
+import api from '../utils/api'; 
 import OrderSummaryCard from '../components/OrderSummaryCard';
 import UpdateProfileForm from '../components/UpdateProfileForm';
 import ReviewFormModal from '../components/ReviewFormModal';
@@ -18,35 +18,40 @@ const ProfilView = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   // --- ÉTAT UX MOBILE (Onglets) ---
-  // Par défaut sur mobile, on montre les commandes (plus important)
   const [activeTab, setActiveTab] = useState('orders'); 
 
+  // --- RÉCUPÉRATION DES COMMANDES ---
   const fetchOrders = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.utilisateur_id) return;
 
     try {
       setIsLoading(true);
-      const userOrders = await getOrdersByUserId(user.uid);
-      // Tri par date décroissante (les plus récentes en premier)
-      userOrders.sort((a, b) => b.date_commande.seconds - a.date_commande.seconds);
+      const response = await api.get('/mes-commandes');
+      const userOrders = response.data;
+      
+      // Tri par date (de la plus récente à la plus ancienne)
+      userOrders.sort((a, b) => new Date(b.date_commande) - new Date(a.date_commande));
       setOrders(userOrders);
+
     } catch (error) {
-      console.error("Erreur lors de la récupération des commandes :", error);
+      console.error("Erreur lors du chargement des commandes :", error);
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.uid]);
+  }, [user?.utilisateur_id]);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
 
+  // --- ANNULATION DE COMMANDE ---
   const handleCancelOrder = async (orderId) => {
+    console.log("Annulation de la commande :", orderId);
     if (!window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) return;
 
     try {
-      await cancelOrder(orderId);
-      await fetchOrders();
+      alert("L'annulation par le client sera bientôt disponible ! Veuillez contacter le restaurant.");
     } catch (error) {
       console.error("Erreur lors de l'annulation :", error);
       alert("Impossible d'annuler la commande.");
@@ -63,18 +68,17 @@ const ProfilView = () => {
     if (!user || !selectedOrder) return;
 
     try {
-      await addReview({
-        ...reviewData,
-        uid: user.uid,
-        nom: user.nom || "Anonyme",
-        prenom: user.prenom || "Client",
-        commande_id: selectedOrder.id,
-        menu_concerne: selectedOrder.nom_menu
+      await api.post('/avis', {
+        numero_commande: selectedOrder.numero_commande || selectedOrder.id,
+        note: reviewData.note,
+        description: reviewData.description || ""
       });
-      alert("Merci ! Votre avis a été envoyé et sera visible après validation.");
+      
+      alert("Merci ! Votre avis a bien été envoyé et est en attente de modération.");
+      setIsReviewModalOpen(false);
     } catch (error) {
       console.error("Erreur lors de l'envoi de l'avis :", error);
-      alert("Erreur lors de l'envoi de l'avis.");
+      alert(error.response?.data?.message || "Erreur lors de l'envoi de l'avis. Avez-vous déjà noté cette commande ?");
     }
   };
 
@@ -187,7 +191,6 @@ const ProfilView = () => {
                   <p className="text-xs uppercase tracking-widest">Recherche de vos festins...</p>
                 </div>
               ) : orders.length > 0 ? (
-                // Desktop: Hauteur fixe avec scroll | Mobile: Hauteur auto (scroll page entier)
                 <div
                   data-lenis-prevent
                   className="lg:h-[600px] lg:overflow-y-auto lg:pr-2 space-y-4 scroll-smooth custom-scrollbar"
@@ -198,7 +201,7 @@ const ProfilView = () => {
                         key={order.id}
                         order={order}
                         onCancel={() => handleCancelOrder(order.id)}
-                        onReview={handleOpenReviewModal}
+                        onReview={() => handleOpenReviewModal(order)}
                       />
                     ))
                   ) : (

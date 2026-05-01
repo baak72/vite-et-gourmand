@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// 2. Initialiser l'Admin SDK
+// Initialiser l'Admin SDK
 initializeApp();
 
 // ==================================================================

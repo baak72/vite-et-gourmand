@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { getPendingReviews, validateReview, deleteReview } from '../utils/firebase';
+import api from '../utils/api';
 import { Check, X, Star, MessageSquare, AlertCircle } from 'lucide-react';
 
 const AdminReviewsTab = () => {
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Récupération des avis "en attente"
   const fetchReviews = async () => {
     setIsLoading(true);
     try {
-      const data = await getPendingReviews();
-      setReviews(data);
+      const response = await api.get('/admin/avis/pending');
+      
+      const formattedReviews = response.data.map(review => ({
+        ...review,
+        id: review.id || review.avis_id 
+      }));
+      
+      setReviews(formattedReviews);
     } catch (error) {
-      console.error(error);
+      console.error("Erreur chargement avis:", error);
     } finally {
       setIsLoading(false);
     }
@@ -22,10 +29,11 @@ const AdminReviewsTab = () => {
     fetchReviews();
   }, []);
 
+  // Passer le statut en "validé"
   const handleValidate = async (id) => {
     if(!window.confirm("Valider cet avis et le rendre public ?")) return;
     try {
-      await validateReview(id);
+      await api.patch(`/admin/avis/${id}/validate`);
       fetchReviews();
     } catch (error) {
       console.error("Erreur validation :", error);
@@ -33,10 +41,11 @@ const AdminReviewsTab = () => {
     }
   };
 
+  // Suppression de l'avis
   const handleRefuse = async (id) => {
     if(!window.confirm("Refuser et supprimer définitivement cet avis ?")) return;
     try {
-      await deleteReview(id);
+      await api.delete(`/admin/avis/${id}`);
       fetchReviews();
     } catch (error) {
       console.error("Erreur refus :", error);
@@ -80,7 +89,7 @@ const AdminReviewsTab = () => {
                     </h4>
                     
                     <span className="text-[10px] text-zinc-500 break-all font-mono">
-                      CMD #{review.order_id || review.id}
+                      CMD #{review.commande_id || review.order_id || "N/A"}
                     </span>
                   </div>
                   

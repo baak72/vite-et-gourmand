@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { getAllOrders, getEmployees, createEmployee, disableEmployee, reactivateEmployee, deleteEmployee } from '../utils/firebase';
+import api from '../utils/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useForm } from 'react-hook-form';
-import { Users, DollarSign, TrendingUp, UserPlus, Trash2, Power, RefreshCw, AlertCircle, CheckCircle2, MoreVertical } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, UserPlus, Trash2, Power, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // --- Info-bulle (lors du passage de la souris sur le graphique) ---
 const CustomTooltip = ({ active, payload, label }) => {
@@ -36,42 +36,41 @@ const AdminDashboardView = () => {
   const [employees, setEmployees] = useState([]);
   const [actionMessage, setActionMessage] = useState(null);
 
-  // Formulaire pour la création d'employé
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
 
   const loadAllData = async () => {
     try {
-      // --- A. ANALYTICS ---
-      const orders = await getAllOrders();
+      // On demande TOUTES les commandes et TOUS les employés à Laravel
+      const [ordersRes, employeesRes] = await Promise.all([
+        api.get('/admin/commandes'),
+        api.get('/admin/employes')
+      ]);
 
+      const orders = ordersRes.data;
+      
+      // --- A. ANALYTICS ---
       let globalCA = 0;
       const menuStats = {};
 
       orders.forEach(order => {
-        const priceString = order.prix_total.replace(' €', '').replace(',', '.');
-        const price = parseFloat(priceString);
-        const isValidPrice = !isNaN(price) && order.statut !== 'annulé';
+        const price = Number(order.prix_menu) + Number(order.prix_livraison);
+        const isValidOrder = order.statut !== 'annulé';
 
-        // Calcul Global
-        if (isValidPrice) {
+        if (isValidOrder) {
           globalCA += price;
         }
 
-        // Calcul par Menu
         const menuName = order.nom_menu || "Menu Inconnu";
-
         if (!menuStats[menuName]) {
           menuStats[menuName] = { count: 0, revenue: 0 };
         }
 
         menuStats[menuName].count += 1;
-
-        if (isValidPrice) {
+        if (isValidOrder) {
           menuStats[menuName].revenue += price;
         }
       });
 
-      // FORMATAGE POUR LE GRAPHIQUE
       const formattedChartData = Object.keys(menuStats).map(key => ({
         name: key,
         count: menuStats[key].count,
@@ -83,8 +82,11 @@ const AdminDashboardView = () => {
       setChartData(formattedChartData);
 
       // --- B. GESTION EMPLOYÉS ---
-      const employeesList = await getEmployees();
-      setEmployees(employeesList);
+      const formattedEmployees = employeesRes.data.map(emp => ({
+          ...emp,
+          id: emp.utilisateur_id 
+      }));
+      setEmployees(formattedEmployees);
 
     } catch (error) {
       console.error("Erreur calcul stats/employés:", error);
@@ -101,24 +103,22 @@ const AdminDashboardView = () => {
   const onCreateEmployee = async (data) => {
     setActionMessage(null);
     try {
-      await createEmployee(data.email, data.password, data.nom, data.prenom);
-
+      await api.post('/admin/employes', data);
       setActionMessage({ type: 'success', text: `Employé ${data.prenom} ${data.nom} créé avec succès !` });
       reset();
       loadAllData();
     } catch (error) {
       console.error("Erreur création:", error);
-      setActionMessage({ type: 'error', text: "Erreur lors de la création. Vérifiez les champs." });
+      setActionMessage({ type: 'error', text: "Erreur lors de la création." });
     }
   };
 
   // --- DÉSACTIVER UN EMPLOYÉ ---
-  const onDisableEmployee = async (uid) => {
+  const onDisableEmployee = async (id) => {
     if (!window.confirm("Êtes-vous sûr de vouloir désactiver cet employé ?")) return;
-
     setActionMessage(null);
     try {
-      await disableEmployee(uid);
+      await api.patch(`/admin/employes/${id}/toggle-status`, { est_actif: false });
       setActionMessage({ type: 'success', text: "Accès employé désactivé." });
       loadAllData();
     } catch (error) {
@@ -128,10 +128,10 @@ const AdminDashboardView = () => {
   };
 
   // --- RÉACTIVER UN EMPLOYÉ ---
-  const onReactivateEmployee = async (uid) => {
+  const onReactivateEmployee = async (id) => {
     setActionMessage(null);
     try {
-      await reactivateEmployee(uid);
+      await api.patch(`/admin/employes/${id}/toggle-status`, { est_actif: true });
       setActionMessage({ type: 'success', text: "Accès employé réactivé." });
       loadAllData();
     } catch (error) {
@@ -141,12 +141,11 @@ const AdminDashboardView = () => {
   };
 
   // --- SUPPRIMER UN EMPLOYÉ ---
-  const onDeleteEmployee = async (uid) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement cet employé ? Cette action est irréversible.")) return;
-
+  const onDeleteEmployee = async (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement cet employé ?")) return;
     setActionMessage(null);
     try {
-      await deleteEmployee(uid);
+      await api.delete(`/admin/employes/${id}`);
       setActionMessage({ type: 'success', text: "Compte employé supprimé définitivement." });
       loadAllData();
     } catch (error) {
@@ -155,7 +154,6 @@ const AdminDashboardView = () => {
     }
   };
 
-  // COULEURS
   const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
 
   if (isLoading) {
@@ -168,34 +166,26 @@ const AdminDashboardView = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-28 pb-12 px-4 sm:px-6 lg:px-8 font-sans">
-      
       <style>{`
           .font-montserrat { font-family: 'Montserrat', sans-serif; }
           .font-playfair { font-family: 'Playfair Display', serif; }
-          
-          /* Force la suppression de tout contour de focus */
           *:focus { outline: none !important; }
           .recharts-wrapper path:focus { outline: none !important; }
           .recharts-layer:focus { outline: none !important; }
       `}</style>
 
       <div className="max-w-7xl mx-auto">
-
         {/* Header */}
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-2">
             <div className="h-[1px] w-8 bg-amber-500"></div>
             <h2 className="text-amber-500 font-bold tracking-widest uppercase text-xs">Gestion Globale</h2>
           </div>
-          <h1 className="font-playfair text-3xl md:text-5xl font-bold text-white">
-            Dashboard Admin
-          </h1>
+          <h1 className="font-playfair text-3xl md:text-5xl font-bold text-white">Dashboard Admin</h1>
         </div>
 
         {/* --- BLOC 1 : LES CHIFFRES CLÉS --- */}
         <section className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-
-          {/* Carte CA */}
           <div className="bg-zinc-900 border border-white/5 rounded-2xl p-6 shadow-lg relative overflow-hidden group">
             <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <DollarSign className="w-24 h-24 text-emerald-500" />
@@ -206,8 +196,6 @@ const AdminDashboardView = () => {
               <p className="text-4xl md:text-5xl font-playfair font-bold text-white">{totalRevenue} <span className="text-emerald-500 text-xl md:text-2xl">€</span></p>
             </div>
           </div>
-
-          {/* Carte Volume */}
           <div className="bg-zinc-900 border border-white/5 rounded-2xl p-6 shadow-lg relative overflow-hidden group">
             <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <TrendingUp className="w-24 h-24 text-amber-500" />
@@ -224,45 +212,17 @@ const AdminDashboardView = () => {
         <section className="mb-12 bg-zinc-900 border border-white/5 shadow-xl rounded-2xl p-4 md:p-8">
           <div className="flex items-center gap-3 mb-8 border-b border-white/5 pb-4">
             <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
-            <h2 className="text-lg md:text-2xl font-bold text-white font-montserrat">
-              Performance des Menus
-            </h2>
+            <h2 className="text-lg md:text-2xl font-bold text-white font-montserrat">Performance des Menus</h2>
           </div>
-
           <div className="h-64 md:h-96 w-full text-xs">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
-                >
+                <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: '#a1a1aa' }}
-                    interval={0}
-                    tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 17)}...` : value}
-                    tickLine={false}
-                    axisLine={{ stroke: '#3f3f46' }}
-                    dy={10}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: '#a1a1aa', fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    cursor={{ fill: 'transparent' }}
-                  />
-                  
-                  <Bar 
-                    dataKey="count" 
-                    radius={[4, 4, 0, 0]} 
-                    activeBar={false}
-                  >
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#a1a1aa' }} interval={0} tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 17)}...` : value} tickLine={false} axisLine={{ stroke: '#3f3f46' }} dy={10} />
+                  <YAxis allowDecimals={false} tick={{ fill: '#a1a1aa', fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} activeBar={false}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} style={{ outline: 'none' }} />
                     ))}
@@ -292,11 +252,10 @@ const AdminDashboardView = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            {/* LISTE DES EMPLOYÉS (Mobile: Cartes / PC: Tableau) */}
+            {/* LISTE DES EMPLOYÉS */}
             <div className="lg:col-span-2 space-y-4">
               
-              {/* VUE MOBILE (Cartes) */}
+              {/* VUE MOBILE */}
               <div className="md:hidden space-y-4">
                 {employees.map((emp) => (
                     <div key={emp.id} className="bg-zinc-900 border border-white/10 rounded-xl p-5 shadow-lg flex flex-col gap-4">
@@ -311,7 +270,6 @@ const AdminDashboardView = () => {
                                 <span className="px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold uppercase tracking-wider">Inactif</span>
                             )}
                         </div>
-                        
                         <div className="flex gap-2 border-t border-white/5 pt-4">
                              {emp.est_actif ? (
                                 <button onClick={() => onDisableEmployee(emp.id)} className="flex-1 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-xs font-bold uppercase hover:bg-zinc-700 flex justify-center items-center gap-2">
@@ -331,7 +289,7 @@ const AdminDashboardView = () => {
                 {employees.length === 0 && <p className="text-zinc-500 text-center py-8">Aucun employé.</p>}
               </div>
 
-              {/* VUE PC (Tableau) */}
+              {/* VUE PC */}
               <div className="hidden md:block bg-zinc-900 border border-white/5 shadow-xl rounded-2xl overflow-hidden">
                 <div className="bg-zinc-950/50 px-6 py-4 border-b border-white/5">
                   <h3 className="font-bold text-zinc-300 uppercase text-xs tracking-wider">Équipe Actuelle</h3>
@@ -359,39 +317,22 @@ const AdminDashboardView = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {emp.est_actif ? (
-                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                  Actif
-                                </span>
+                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Actif</span>
                               ) : (
-                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-                                  Désactivé
-                                </span>
+                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-500/10 text-red-400 border border-red-500/20">Désactivé</span>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
                               {emp.est_actif ? (
-                                <button
-                                  onClick={() => onDisableEmployee(emp.id)}
-                                  title="Désactiver le compte"
-                                  className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
-                                >
+                                <button onClick={() => onDisableEmployee(emp.id)} title="Désactiver" className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-amber-500/10 hover:text-amber-500 transition-colors">
                                   <Power className="w-4 h-4" />
                                 </button>
                               ) : (
-                                <button
-                                  onClick={() => onReactivateEmployee(emp.id)}
-                                  title="Réactiver le compte"
-                                  className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors"
-                                >
+                                <button onClick={() => onReactivateEmployee(emp.id)} title="Réactiver" className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors">
                                   <RefreshCw className="w-4 h-4" />
                                 </button>
                               )}
-
-                              <button
-                                onClick={() => onDeleteEmployee(emp.id)}
-                                title="Supprimer définitivement"
-                                className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                              >
+                              <button onClick={() => onDeleteEmployee(emp.id)} title="Supprimer" className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-colors">
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </td>
@@ -412,64 +353,29 @@ const AdminDashboardView = () => {
               </div>
               <div className="p-6">
                 <form onSubmit={handleSubmit(onCreateEmployee)} className="space-y-4">
-
-                  {/* NOM / PRÉNOM */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Nom</label>
-                      <input
-                        type="text"
-                        required
-                        {...register("nom")}
-                        className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 focus:outline-hidden transition-colors text-sm"
-                        placeholder="Dupont"
-                      />
+                      <input type="text" required {...register("nom")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 transition-colors text-sm" placeholder="Dupont" />
                     </div>
-
                     <div>
                       <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Prénom</label>
-                      <input
-                        type="text"
-                        required
-                        {...register("prenom")}
-                        className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 focus:outline-hidden transition-colors text-sm"
-                        placeholder="Jean"
-                      />
+                      <input type="text" required {...register("prenom")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 transition-colors text-sm" placeholder="Jean" />
                     </div>
                   </div>
-
                   <div>
                     <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">E-mail</label>
-                    <input
-                      type="email"
-                      required
-                      {...register("email")}
-                      className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 focus:outline-hidden transition-colors text-sm"
-                      placeholder="prenom.nom@viteetgourmand.fr"
-                    />
+                    <input type="email" required {...register("email")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 transition-colors text-sm" placeholder="prenom.nom@viteetgourmand.fr" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Mot de passe</label>
-                    <input
-                      type="password"
-                      required
-                      {...register("password")}
-                      className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 focus:outline-hidden transition-colors text-sm"
-                      placeholder="••••••••"
-                    />
+                    <input type="password" required {...register("password")} className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 focus:border-amber-500 transition-colors text-sm" placeholder="••••••••" />
                   </div>
                   <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold uppercase tracking-wide text-white bg-amber-500 hover:bg-amber-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <button type="submit" disabled={isSubmitting} className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-sm font-bold uppercase text-white bg-amber-500 hover:bg-amber-600 transition-all disabled:opacity-50">
                       {isSubmitting ? "Création..." : "Créer le compte"}
                     </button>
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-4 text-center leading-tight">
-                    L'employé devra utiliser ces identifiants pour accéder à son dashboard.
-                  </p>
                 </form>
               </div>
             </div>

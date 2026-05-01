@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Marquee from "react-fast-marquee";
-import { getValidatedReviews, getReviewsCount } from '../utils/firebase';
+import api from '../utils/api';
 import ReviewCard from './ReviewCard';
 import { Quote } from 'lucide-react';
 
@@ -11,10 +11,15 @@ const ReviewsSection = () => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const data = await getValidatedReviews();
-        setTotalCount(await getReviewsCount());
-        const shuffled = data.sort(() => 0.5 - Math.random());
+        const response = await api.get('/avis');
+        
+        setTotalCount(response.data.totalCount);
+        
+        // Récupération de la liste des avis, on les mélange, et on en garde 8 max
+        const allReviews = response.data.data;
+        const shuffled = [...allReviews].sort(() => 0.5 - Math.random());
         const selectedReviews = shuffled.slice(0, 8);
+        
         setReviews(selectedReviews);
       } catch (error) {
         console.error("Erreur chargement avis :", error);
@@ -61,7 +66,7 @@ const ReviewsSection = () => {
           </h2>
 
           <p className="text-zinc-400 font-light max-w-lg mx-auto text-sm md:text-base">
-            Découvez les retours de nos clients les plus exigeants.
+            Découvrez les retours de nos clients les plus exigeants.
           </p>
 
         </div>
@@ -87,7 +92,7 @@ const ReviewsSection = () => {
             >
               {reviews.map((review) => (
                 // Mobile: mx-3 | Desktop: mx-6
-                <div key={review.id} className="mx-3 md:mx-6 py-2">
+                <div key={review.avis_id || review.id} className="mx-3 md:mx-6 py-2">
                   <ReviewCard review={review} />
                 </div>
               ))}

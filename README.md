@@ -80,7 +80,6 @@ Pour répondre aux exigences académiques de modélisation relationnelle :
 
 Clonez le dépôt :
 
-```bash
 git clone https://github.com/baak72/vite-et-gourmand.git
 cd vite-et-gourmand
 
@@ -107,8 +106,29 @@ Démarrez l'application localement :
 
 npm run dev
 
-
 L'application sera accessible depuis votre navigateur à l'adresse indiquée dans le terminal (généralement http://localhost:5173).
+
+🌍 Guide de Déploiement en Ligne (Firebase Hosting)
+L'application Front-End est configurée pour être déployée sur Firebase Hosting. Voici les étapes pour publier une nouvelle version en ligne :
+
+1️⃣ Préparer le build de production
+
+Compilez le projet React/Vite pour générer les fichiers statiques optimisés :
+npm run build
+(Cela créera un dossier dist à la racine du projet).
+
+2️⃣ Installer les outils Firebase (si ce n'est pas déjà fait)
+
+npm install -g firebase-tools
+
+3️⃣ Authentification et Déploiement
+
+Connectez-vous à votre compte Google/Firebase via le terminal :
+firebase login
+
+Lancez le déploiement uniquement pour l'hébergement (Hosting) :
+firebase deploy --only hosting
+
 
 🌿 Stratégie de Versioning (Git Flow)
 

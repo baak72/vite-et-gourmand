@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { signOutUser } from '../utils/firebase';
+import api from '../utils/api';
 import { User, LogOut, Menu, X } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const Navbar = () => {
   const user = useAuthStore((state) => state.user);
+  
+  // Récupération des fonctions pour vider la mémoire de Zustand
+  const logout = useAuthStore((state) => state.logout); 
+  const setUser = useAuthStore((state) => state.setUser); 
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,12 +56,25 @@ const Navbar = () => {
   const isStaff = user && user.role_id <= 2;
   const isAdmin = user && user.role_id === 1;
 
+  // --- Fonction pour se déconnecter ---
   const handleLogout = async () => {
     try {
-      await signOutUser();
-      navigate('/');
+      // Détruire le jeton de sécurité Sanctum
+      await api.post('/logout');
     } catch (error) {
-      console.error("Erreur lors de la déconnexion :", error);
+      console.error("Erreur côté serveur lors de la déconnexion :", error);
+    } finally {
+      if (logout) {
+        logout();
+      } else if (setUser) {
+        setUser(null);
+      }
+      
+      // Destruction du token
+      localStorage.removeItem('auth_token');
+
+      // On redirige vers l'accueil
+      navigate('/');
     }
   };
 

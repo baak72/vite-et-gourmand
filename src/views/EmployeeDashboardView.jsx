@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Truck, CheckCircle2, AlertCircle, Clock, ChefHat, RotateCcw, Search, Menu as MenuIcon, ClipboardList, Star, X, XCircle, MapPin } from 'lucide-react';
-import { getAllOrders, updateOrderStatus, refuseOrder } from '../utils/firebase';
+import api from '../utils/api';
 import AdminMenusTab from "../components/AdminMenusTab";
 import AdminReviewsTab from "../components/AdminReviewsTab";
 
@@ -20,10 +20,17 @@ const EmployeeDashboardView = () => {
   const fetchAllOrders = async (filter) => {
     setIsLoading(true);
     try {
-      const data = await getAllOrders(filter);
-      // Tri par date décroissante pour voir les nouvelles en premier
-      data.sort((a, b) => b.date_commande?.seconds - a.date_commande?.seconds);
-      setOrders(data);
+      const response = await api.get('/admin/commandes', {
+        params: { statut: filter }
+      });
+      
+      const formattedOrders = response.data.map(order => ({
+        ...order,
+        id: order.numero_commande,
+        prix_total: (Number(order.prix_menu) + Number(order.prix_livraison)).toFixed(2)
+      }));
+
+      setOrders(formattedOrders);
     } catch (error) {
       console.error("Erreur commandes:", error);
     } finally {
@@ -35,14 +42,15 @@ const EmployeeDashboardView = () => {
     if (activeTab === 'orders') fetchAllOrders(statusFilter);
   }, [statusFilter, activeTab]);
 
+  // --- CHANGER LE STATUT D'UNE COMMANDE ---
   const handleStatusChange = async (orderId, newStatus) => {
     setSubmitError(null);
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await api.patch(`/admin/commandes/${orderId}/status`, { statut: newStatus });
       fetchAllOrders(statusFilter);
     } catch (error) {
       console.error("Erreur mise à jour statut:", error);
-      setSubmitError("Impossible de mettre à jour. Vérifiez les droits.");
+      setSubmitError("Impossible de mettre à jour. Vérifiez vos droits ou votre connexion.");
     }
   };
 
@@ -58,9 +66,11 @@ const EmployeeDashboardView = () => {
     
     setIsRefusing(true);
     try {
-      await refuseOrder(orderToRefuse.id, refusalReason);
+      await api.patch(`/admin/commandes/${orderToRefuse.id}/status`, { 
+        statut: 'annulé',
+        motif: refusalReason 
+      });
       
-      // Fermer et rafraîchir
       setIsRefuseModalOpen(false);
       setOrderToRefuse(null);
       fetchAllOrders(statusFilter);
@@ -74,7 +84,7 @@ const EmployeeDashboardView = () => {
 
   const getStatusStyle = (status) => {
     const baseStyle = "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 w-fit uppercase tracking-wider";
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'en attente': return `${baseStyle} bg-yellow-500/10 text-yellow-500 border-yellow-500/20`;
       case 'validé': return `${baseStyle} bg-blue-500/10 text-blue-400 border-blue-500/20`;
       case 'en préparation': return `${baseStyle} bg-amber-500/10 text-amber-500 border-amber-500/20`;
@@ -88,7 +98,7 @@ const EmployeeDashboardView = () => {
   };
 
   const getStatusIcon = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'en attente': return <Clock className="w-3 h-3" />;
       case 'validé': return <CheckCircle2 className="w-3 h-3" />;
       case 'en préparation': return <ChefHat className="w-3 h-3" />;
@@ -224,6 +234,7 @@ const EmployeeDashboardView = () => {
                         </div>
                     </div>
                 ))}
+                {orders.length === 0 && <p className="text-center text-zinc-500">Aucune commande trouvée.</p>}
               </div>
 
               {/* --- VUE PC : TABLEAU CLASSIQUE --- */}
@@ -239,7 +250,9 @@ const EmployeeDashboardView = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {orders.map((order) => (
+                      {orders.length === 0 ? (
+                        <tr><td colSpan="4" className="text-center py-8 text-zinc-500">Aucune commande.</td></tr>
+                      ) : orders.map((order) => (
                         <tr key={order.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4 align-top">
                             <div className="flex flex-col">
@@ -316,7 +329,7 @@ const EmployeeDashboardView = () => {
                 
                 <h3 className="text-xl font-bold text-white mb-2 pr-8">Refuser la commande</h3>
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
-                    Cette action est <strong>irréversible</strong>. La commande sera annulée et le client recevra un email avec le motif ci-dessous.
+                    Cette action est <strong>irréversible</strong>. La commande sera annulée et le motif sera enregistré.
                 </p>
 
                 <div className="mb-6">

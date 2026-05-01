@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getMenus } from '../utils/firebase';
+import api from '../utils/api'; 
 import MenuCard from '../components/MenuCard';
-import {
-  Search, Loader2, ChefHat, X, Leaf, WheatOff, Utensils, Filter
-} from 'lucide-react';
+import { Search, Loader2, ChefHat, X, Leaf, WheatOff, Utensils, Filter } from 'lucide-react';
 
 const MenusView = () => {
   // --- États Données ---
@@ -23,15 +21,20 @@ const MenusView = () => {
     const fetchMenus = async () => {
       try {
         setIsLoading(true);
+        // On prépare nos filtres
         const filters = { prixMax, theme, regime };
-        const data = await getMenus(filters);
-        setMenus(data);
+
+        const response = await api.get('/menus', { params: filters });
+        
+        setMenus(response.data);
       } catch (error) {
         console.error("Erreur chargement menus :", error);
+        setMenus([]); 
       } finally {
         setIsLoading(false);
       }
     };
+    
     fetchMenus();
   }, [prixMax, theme, regime]);
 

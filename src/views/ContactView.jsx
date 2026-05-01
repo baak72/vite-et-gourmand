@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { sendContactForm } from '../utils/firebase';
+import api from '../utils/api';
 import { Mail, Phone, MapPin, Send, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 // Schéma de validation
@@ -24,7 +24,8 @@ const ContactView = () => {
     setSuccessMessage(null);
     setErrorMessage(null);
     try {
-      await sendContactForm(data);
+      await api.post('/contact', data);
+      
       setSuccessMessage("Message envoyé ! Nous revenons vers vous très vite.");
       reset();
     } catch (error) {

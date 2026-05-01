@@ -3,20 +3,29 @@ import { Calendar, Clock, Users, Utensils, XCircle, MessageSquarePlus } from 'lu
 
 const OrderSummaryCard = ({ order, onCancel, onReview }) => {
 
-  // Gestion de la date de commande
-  let orderDate;
-  if (order.date_commande?.seconds) {
-    orderDate = new Date(order.date_commande.seconds * 1000).toLocaleDateString("fr-FR");
-  } else {
-    orderDate = "À l'instant";
+  // 1. Gestion de la date de commande
+  let orderDate = "À l'instant";
+  if (order.date_commande) {
+    const parsedDate = new Date(order.date_commande);
+    if (!isNaN(parsedDate)) {
+      orderDate = parsedDate.toLocaleDateString("fr-FR");
+    }
   }
 
-  const orderNumber = order.id.slice(0, 8).toUpperCase();
+  // 2. Gestion de l'ID
+  const orderNumber = order.numero_commande 
+    ? String(order.numero_commande).padStart(4, '0') 
+    : "N/A";
+
+  // 3. Calcul du prix total (prix_menu + prix_livraison)
+  const totalPrix = (order.prix_menu !== undefined && order.prix_livraison !== undefined)
+    ? (Number(order.prix_menu) + Number(order.prix_livraison)).toFixed(2) + " €"
+    : "En cours...";
 
   // Fonction de style pour les badges
   const getStatusStyle = (status) => {
     const base = "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border";
-    switch (status) {
+    switch (status?.toLowerCase()) { 
       case 'validé': return `${base} bg-emerald-500/10 text-emerald-400 border-emerald-500/20`;
       case 'en préparation': return `${base} bg-amber-500/10 text-amber-500 border-amber-500/20`;
       case 'en cours de livraison': return `${base} bg-indigo-500/10 text-indigo-400 border-indigo-500/20`;
@@ -32,7 +41,7 @@ const OrderSummaryCard = ({ order, onCancel, onReview }) => {
     <div className="group bg-zinc-900 border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:border-amber-500/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] relative overflow-hidden">
 
       {/* Effet de survol */}
-      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none transform -skew-x-12 translate-x-full group-hover:-translate-x-full"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none transform -skew-x-12 translate-x-full group-hover:-translate-x-full"></div>
 
       {/* --- EN-TÊTE --- */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-white/5 pb-4">
@@ -61,7 +70,7 @@ const OrderSummaryCard = ({ order, onCancel, onReview }) => {
         {/* Détails Menu */}
         <div className="md:col-span-2">
           <h3 className="text-xl font-bold text-white font-montserrat mb-2 group-hover:text-amber-500 transition-colors">
-            {order.nom_menu || "Menu"}
+            {order.nom_menu || "Menu Commandé"}
           </h3>
 
           <div className="flex flex-wrap gap-4 mt-3">
@@ -80,7 +89,7 @@ const OrderSummaryCard = ({ order, onCancel, onReview }) => {
         <div className="flex flex-col md:items-end justify-center">
           <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Total TTC</p>
           <p className="text-3xl font-bold font-playfair text-amber-500">
-            {order.prix_total}
+            {totalPrix}
           </p>
         </div>
       </div>

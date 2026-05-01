@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, getUserProfile } from './utils/firebase';
 import { useAuthStore } from './store/useAuthStore';
+import api from './utils/api';
 import { ReactLenis } from 'lenis/react'
 import { ChefHat } from 'lucide-react';
 import 'lenis/dist/lenis.css'
+
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
 import HomeView from './views/HomeView';
@@ -85,24 +85,37 @@ function App() {
     return () => clearInterval(interval);
   }, [authReady]);
 
+  // --- SYSTÈME D'AUTO-CONNEXION ---
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const profileData = await getUserProfile(user.uid);
-        const fullUserData = {
-          uid: user.uid,
-          email: user.email,
-          ...profileData
-        };
-        
-        setUser(fullUserData);
-      } else {
-        clearUser(); 
-      }
-      setAuthReady(true);
-    });
+    const checkUserStatus = async () => {
+      const token = localStorage.getItem('auth_token');
 
-    return () => unsubscribe();
+      if (token) {
+        try {
+          // Si on a un token, on demande à Laravel à qui il appartient
+          const response = await api.get('/user');
+          
+          // Laravel nous rend le profil, on le sauvegarde dans Zustand
+          setUser(response.data);
+        } catch (error) {
+          // Si le token est invalide ou expiré, on le supprime et on vide le store
+          console.error("Token invalide ou expiré :", error);
+          localStorage.removeItem('auth_token');
+          clearUser();
+        }
+      } else {
+        // S'il n'y a pas de token, on s'assure que le store est bien vide
+        clearUser();
+      }
+
+      setAuthReady(true);
+    };
+
+    // On lance la vérification au démarrage avec un tout petit délai pour l'animation
+    setTimeout(() => {
+      checkUserStatus();
+    }, 1000);
+
   }, [setUser, clearUser]);
 
   // --- ÉCRAN DE CHARGEMENT LUXE ---

@@ -1,31 +1,30 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuthStatus } from '../hooks/useAuthStatus';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 
 const RoleProtectedRoute = () => {
-  // On vérifie si connecté
-  const { loggedIn, checkingStatus } = useAuthStatus();
-  // On récupère les infos du profil
   const user = useAuthStore((state) => state.user);
+  const token = localStorage.getItem('auth_token');
+  const location = useLocation();
 
-  if (checkingStatus) {
-    return <div className="p-8 text-center">Vérification des accès...</div>;
-  }
-
-  if (!loggedIn) {
+  // Si la personne n'est pas connectée du tout -> page Login
+  if (!user && !token) {
     return <Navigate to="/login" replace />;
   }
 
-  // VÉRIFICATION DU RÔLE
-  // Si le rôle est strictement supérieur à 2 (donc 3 = Client), on bloque.
-  // (Admin=1 et Employé=2)
-  if (user && user.role_id > 2) {
-    // On redirige le client vers son profil normal
-    return <Navigate to="/profil" replace />;
+  // Si la personne est connectée, on attend d'avoir ses infos pour vérifier son rôle
+  if (user) {
+    // Si c'est un client (role_id = 3) -> Retour à l'accueil
+    if (user.role_id === 3) {
+      return <Navigate to="/" replace />;
+    }
+
+    // Sécurité stricte : Si un employé (2) essaie d'aller sur la page Admin (/admin)
+    if (location.pathname.startsWith('/admin') && user.role_id !== 1) {
+      return <Navigate to="/employe/dashboard" replace />; // On le renvoie dans sa propre zone
+    }
   }
 
-  // Si c'est un Admin (1) ou Employé (2), on laisse passer
   return <Outlet />;
 };
 

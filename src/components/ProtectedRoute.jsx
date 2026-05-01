@@ -1,20 +1,21 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuthStatus } from '../hooks/useAuthStatus';
+import { useAuthStore } from '../store/useAuthStore';
 
 const ProtectedRoute = () => {
-  const { loggedIn, checkingStatus } = useAuthStatus();
+  // On regarde dans Zustand si on a un utilisateur
+  const user = useAuthStore((state) => state.user);
+  
+  // On regarde dans le navigateur si on a le Token Laravel
+  const token = localStorage.getItem('auth_token');
 
-  if (checkingStatus) {
-    return <div>Chargement...</div>;
-  }
-
-  if (loggedIn) {
-    return <Outlet />; // On affiche la page ProfilView
+  // Si on a le token OU l'utilisateur, c'est qu'on est connecté : on ouvre la porte
+  if (user || token) {
+    return <Outlet />; 
   }
   
-  // Si on a fini de vérifier ET que loggedIn est FAUX
-  return <Navigate to="/login" replace />; // On renvoie à la connexion
+  // Sinon, on renvoie à la page de connexion
+  return <Navigate to="/login" replace />; 
 };
 
 export default ProtectedRoute;

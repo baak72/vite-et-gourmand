@@ -13,6 +13,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.1.16",
+    "axios": "^1.15.2",
     "clsx": "^2.1.1",
     "firebase": "^12.5.0",
     "framer-motion": "^12.28.1",

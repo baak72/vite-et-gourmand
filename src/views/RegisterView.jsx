@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Lock, UserPlus, ArrowRight, AlertCircle } from 'lucide-react';
-import { registerUser } from '../utils/firebase';
+import api from '../utils/api'; 
 import { useAuthStore } from '../store/useAuthStore';
 
 // --- Le Schéma de Validation ---
@@ -28,33 +28,44 @@ const registerSchema = z.object({
 
 const RegisterView = () => {
   // --- Initialisation des outils ---
-  const [firebaseError, setFirebaseError] = useState(null);
+  const [authError, setAuthError] = useState(null);
   const navigate = useNavigate();
-  useAuthStore((state) => state.setUser);
-
+  const setUser = useAuthStore((state) => state.setUser);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(registerSchema),
   });
 
   // --- La fonction de soumission ---
   const onSubmit = async (data) => {
-    setFirebaseError(null);
+    setAuthError(null);
     try {
-      const additionalData = {
+      // 1. On envoie toutes les données à la route d'inscription
+      const response = await api.post('/register', {
         nom: data.nom,
         prenom: data.prenom,
         telephone: data.telephone,
-      };
+        email: data.email,
+        password: data.password,
+        password_confirmation: data.confirmPassword
+      });
 
-      await registerUser(data.email, data.password, additionalData);
+      // 2. On sauvegarde le token de connexion
+      localStorage.setItem('auth_token', response.data.token);
+
+      // 3. On sauvegarde l'utilisateur dans l'état global Zustand
+      setUser(response.data.user);
+
+      // 4. Redirection vers le profil
       navigate('/profil');
 
     } catch (error) {
-      console.error("Erreur d'inscription Firebase :", error.message);
-      if (error.code === 'auth/email-already-in-use') {
-        setFirebaseError("Cet email est déjà associé à un compte.");
+      console.error("Erreur d'inscription :", error);
+      
+      if (error.response && error.response.data && error.response.data.errors) {
+        const firstError = Object.values(error.response.data.errors)[0][0];
+        setAuthError(firstError);
       } else {
-        setFirebaseError("Une erreur est survenue. Veuillez réessayer.");
+        setAuthError("Une erreur est survenue lors de la création de votre compte.");
       }
     }
   };
@@ -180,11 +191,11 @@ const RegisterView = () => {
               {errors.confirmPassword && <p className="text-xs text-red-400 font-medium ml-1">{errors.confirmPassword.message}</p>}
             </div>
 
-            {/* Erreur Globale Firebase */}
-            {firebaseError && (
+            {/* Erreur Globale API */}
+            {authError && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm flex items-center justify-center gap-2 animate-pulse">
                 <AlertCircle className="w-4 h-4" />
-                {firebaseError}
+                {authError}
               </div>
             )}
 

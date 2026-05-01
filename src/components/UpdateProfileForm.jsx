@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { updateUserProfile } from '../utils/firebase';
+import api from '../utils/api'; 
 import { Save, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -15,8 +15,9 @@ const profileSchema = z.object({
 
 const UpdateProfileForm = ({ user }) => {
   const [successMessage, setSuccessMessage] = useState(null);
+  const [apiError, setApiError] = useState(null);
 
-  // On récupère la fonction du store pour mettre à jour l'affichage sans recharger la page
+  // Récupération dela fonction du store pour mettre à jour l'affichage sans recharger la page
   const setUser = useAuthStore((state) => state.setUser);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
@@ -30,12 +31,16 @@ const UpdateProfileForm = ({ user }) => {
 
   const onSubmit = async (data) => {
     setSuccessMessage(null);
+    setApiError(null);
+    
     try {
-      // 1. Mise à jour dans Firebase
-      await updateUserProfile(user.uid, data);
+      // Mise à jour dans Laravel
+      const response = await api.put('/profil', data);
+      console.log("Réponse de Laravel :", response.data);
 
-      // 2. Mise à jour locale (Zustand) pour reflet immédiat
+      // Mise à jour locale (Zustand) pour reflet immédiat
       if (setUser) {
+        // On fusionne les anciennes données avec les nouvelles
         setUser({ ...user, ...data });
       }
 
@@ -46,6 +51,7 @@ const UpdateProfileForm = ({ user }) => {
 
     } catch (error) {
       console.error("Erreur de mise à jour:", error);
+      setApiError("Impossible de mettre à jour le profil pour le moment.");
     }
   };
 
@@ -123,6 +129,14 @@ const UpdateProfileForm = ({ user }) => {
         <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg flex items-center gap-2 text-sm font-semibold animate-pulse">
           <CheckCircle2 className="w-4 h-4" />
           {successMessage}
+        </div>
+      )}
+
+      {/* Message d'erreur API */}
+      {apiError && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg flex items-center gap-2 text-sm font-semibold animate-pulse">
+          <AlertCircle className="w-4 h-4" />
+          {apiError}
         </div>
       )}
 

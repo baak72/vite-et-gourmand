@@ -4,11 +4,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/useAuthStore';
-import { getMenuById, createOrder } from '../utils/firebase';
-import {
-  Calendar, Clock, MapPin, User, Building, Mail, Phone,
-  CheckCircle2, AlertCircle, Utensils, FileText, Truck, ArrowRight
-} from 'lucide-react';
+import api from '../utils/api';
+import { Calendar, Clock, MapPin, User, Building, Mail, Phone, CheckCircle2, AlertCircle, Utensils, FileText, Truck, ArrowRight } from 'lucide-react';
 
 // --- Fonction utilitaire pour la date ---
 const getMinDateFromCondition = (condition) => {
@@ -62,14 +59,15 @@ const CommandeView = () => {
     resolver: zodResolver(orderSchema),
   });
 
+  // --- Récupération du Menu (Laravel) ---
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const data = await getMenuById(menuId);
-        setMenu(data);
-        setIsLoading(false);
+        const response = await api.get(`/menus/${menuId}`);
+        setMenu(response.data);
       } catch (error) {
         console.error("Erreur menu:", error);
+      } finally {
         setIsLoading(false);
       }
     };
@@ -94,7 +92,7 @@ const CommandeView = () => {
   const prixTotal = useMemo(() => {
     if (!menu || !watchedNbPersonne) return 0;
     const nbP = parseInt(watchedNbPersonne, 10);
-    const minP = menu.nombre_personne_minimum;
+    const minP = menu.nombre_personne_minimum || 2; // Sécurité si non défini
 
     if (nbP < minP) return `Min. ${minP} pers.`;
 
@@ -126,8 +124,8 @@ const CommandeView = () => {
       return;
     }
 
-    if (data.nombre_personne < menu.nombre_personne_minimum) {
-      setOrderError(`Minimum de ${menu.nombre_personne_minimum} personnes requis.`);
+    if (data.nombre_personne < (menu.nombre_personne_minimum || 2)) {
+      setOrderError(`Minimum de ${menu.nombre_personne_minimum || 2} personnes requis.`);
       return;
     }
 
@@ -144,23 +142,22 @@ const CommandeView = () => {
 
     try {
       const orderData = {
-        uid: user.uid,
         menu_id: menu.id,
         nom_menu: menu.nom_menu,
         ...data,
         adresse_livraison: fullDeliveryAddr,
         adresse_facturation: fullBillingAddr,
         prix_total: prixTotal,
-        date_commande: new Date(),
-        statut: "en attente"
       };
 
-      await createOrder(orderData);
+      await api.post('/commandes', orderData);
+      
+      // Si tout est bon, on redirige vers le profil
       navigate('/profil');
 
     } catch (error) {
       console.error("Erreur commande:", error);
-      setOrderError("Une erreur est survenue.");
+      setOrderError("Une erreur est survenue lors de la commande.");
     }
   };
 
@@ -273,7 +270,7 @@ const CommandeView = () => {
                           className="w-full bg-zinc-950/50 border border-zinc-800 text-white rounded-xl pl-10 pr-4 py-3 focus:border-amber-500 focus:outline-none transition-colors cursor-pointer scheme-dark [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         />
                       </div>
-                      <p className="mt-1 text-[10px] text-amber-500/80 font-medium">Condition : {menu.conditions}</p>
+                      <p className="mt-1 text-[10px] text-amber-500/80 font-medium">Condition : {menu.conditions || "Aucune"}</p>
                       {errors.date_prestation && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.date_prestation.message}</p>}
                     </div>
 
@@ -401,7 +398,7 @@ const CommandeView = () => {
                       </label>
                       <input
                         type="number"
-                        min={menu.nombre_personne_minimum}
+                        min={menu.nombre_personne_minimum || 2}
                         {...register("nombre_personne")}
                         className="
                               w-full bg-zinc-950 border border-zinc-800 
@@ -424,7 +421,7 @@ const CommandeView = () => {
 
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-xs text-amber-200/80 leading-relaxed">
                     <span className="font-bold text-amber-500 block mb-1">Offre de groupe :</span>
-                    Profitez de <span className="text-white font-bold">-10%</span> dès {menu.nombre_personne_minimum + 5} personnes.
+                    Profitez de <span className="text-white font-bold">-10%</span> dès {(menu.nombre_personne_minimum || 2) + 5} personnes.
                   </div>
 
                   <div className="py-6 border-t border-b border-white/5 text-center">
